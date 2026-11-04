@@ -5,7 +5,9 @@ Date: 2026-11-04. Target: Windows 10/11 x64.
 ## Completed checks
 
 - The user confirmed successful installation and many working functions in alpha.1, including radio search and Enter-to-play. This supersedes the earlier uncertainty about ordinary-user installation.
-- 52 automated tests passed locally, without skipping the real audio-output test. The final run and packaged checks are recorded in the adjacent verification report.
+- 55 automated tests passed locally, without skipping the real audio-output test. The final run and packaged checks are recorded in the adjacent verification report.
+- All 30 default hotkeys registered in the normal Windows session. Actual key delivery was verified for information, volume down and speed up; no media was playing during these key-delivery checks.
+- A clean dependency restore downloaded all 83 pinned vendor files and verified every SHA-256 digest.
 - The user confirmed authenticated GETEM audiobook playback, radio and podcast playback.
 - Desktop default bindings avoid Windows-key shortcuts and reserved F12. Tests verify distinct bindings for all 30 default commands, explicit custom overrides, disabled bindings and unregister cleanup.
 - New regression tests cover semantic settings validation, malformed favourites, preserving an existing valid backup, recording-close cancellation, final-save failures, update results arriving after shutdown, duplicate update checks and recursive source-package exclusions.

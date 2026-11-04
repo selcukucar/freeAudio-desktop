@@ -89,10 +89,10 @@ class RestoreValidationTests(unittest.TestCase):
     def test_source_archive_excludes_its_own_outputs_and_local_profiles(self):
         from build import source_files
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / 'source'
+            root = (Path(directory) / 'source').resolve()
             for name in ['main.py', 'desktop/example.py', '.venv/private.txt',
                          '.test-profile/settings.json', 'custom-build/app.exe',
-                         'custom-output/source.zip', 'old-release.zip']:
+                         'custom-output/source.zip', 'old-release.zip', 'vendor/freeAudio/ffmpeg.exe']:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('fixture')
