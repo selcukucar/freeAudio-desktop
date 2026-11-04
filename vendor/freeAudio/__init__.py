@@ -1,0 +1,1750 @@
+# -*- coding: utf-8 -*-
+
+import base64
+import braille
+import config
+import hashlib
+import os
+import tempfile
+import globalPluginHandler
+import globalVars
+import gui
+from gui import guiHelper
+import logging
+import threading
+import ui
+import wx
+from scriptHandler import script
+import speech
+
+
+import addonHandler
+addonHandler.initTranslation()
+
+log = logging.getLogger(__name__)
+
+
+def _speak_on_demand(msg):
+	"""Announce a message regardless of NVDA's current speech mode.
+
+	When a script uses speakOnDemand=True, NVDA allows speech only while the
+	script is executing on the main thread.  Any speech triggered later — e.g.
+	from a background thread via wx.CallAfter — arrives after NVDA has already
+	left that "on demand" window, so the output is silently suppressed.
+
+	The reliable workaround (also used by Resource Monitor and similar add-ons)
+	is to briefly force speech mode to SpeechMode.talk before speaking, then
+	restore whatever mode was active.  This must be called from the main thread
+	(use wx.CallAfter when coming from a background thread).
+
+	Args:
+		msg: The string to announce.
+	"""
+	# SpeechMode was introduced in NVDA 2021.1.  Guard for older builds just in
+	# case, although any NVDA that supports speakOnDemand already has it.
+	try:
+		previous_mode = speech.getState().speechMode
+		speech.setSpeechMode(speech.SpeechMode.talk)
+		try:
+			speech.speakMessage(msg)
+		finally:
+			speech.setSpeechMode(previous_mode)
+	except Exception:
+		# Fallback: plain ui.message (works on older NVDA without on-demand mode).
+		ui.message(msg)
+	_braille_message(msg)
+
+
+def _notifications_muted():
+	"""Return True when the user has enabled 'Mute notifications' in settings."""
+	return config.conf["freeAudio"].get("mute_notifications", False)
+
+
+def _braille_messages_enabled():
+	return config.conf["freeAudio"].get(
+		"braille_messages",
+		config.conf["freeAudio"].get("braille_messages_outside_dialog", False),
+	)
+
+
+def _braille_message(msg):
+	if not msg or not _braille_messages_enabled():
+		return
+	try:
+		handler = getattr(braille, "handler", None)
+		if handler:
+			handler.message(str(msg))
+	except Exception as e:
+		log.debug("freeAudio: braille message failed: %s", e)
+
+
+def _notify(msg):
+	"""Announce msg via ui.message unless notifications are muted."""
+	if not _notifications_muted():
+		ui.message(msg)
+		_braille_message(msg)
+
+
+def _notify_on_demand(msg):
+	"""Announce msg via _speak_on_demand unless notifications are muted."""
+	if not _notifications_muted():
+		_speak_on_demand(msg)
+
+
+def _format_duration(seconds):
+	"""Format a duration in seconds as H:MM:SS, or M:SS under an hour."""
+	seconds = max(0, int(round(seconds)))
+	hours, rem = divmod(seconds, 3600)
+	minutes, secs = divmod(rem, 60)
+	if hours:
+		return "%d:%02d:%02d" % (hours, minutes, secs)
+	return "%d:%02d" % (minutes, secs)
+
+
+def _ps_b64_utf8(value):
+	"""Encode *value* as base64 of its UTF-8 bytes."""
+	return base64.b64encode((value or "").encode("utf-8")).decode("ascii")
+
+
+def _build_sapi5_ps_script(msg, voice_name):
+	"""Build the PowerShell script that speaks *msg* via System.Speech.
+
+	Both *msg* and *voice_name* are embedded as base64-encoded UTF-8
+	and decoded on the PowerShell side. Base64's alphabet (A-Z a-z 0-9
+	+ / =) contains no character that PowerShell treats as a string
+	delimiter, an escape introducer, a variable reference, or a
+	subexpression opener - so neither value can break out of the
+	single-quoted literal it is embedded in, regardless of which
+	Unicode characters PowerShell's parser happens to accept as
+	quotes. The previous approach (single-quoted literals with
+	embedded U+0027 doubled) was bypassable via the typographic
+	apostrophes U+2018 / U+2019 / U+201A / U+201B, all four of which
+	Windows PowerShell 5.1 also accepts as string delimiters.
+
+	Note that a doubling-based fix would have to cover all five of
+	those characters, not just the ASCII apostrophe: verified on
+	Windows PowerShell 5.1, each of U+2018, U+2019, U+201A and
+	U+201B closes a single-quoted string exactly as U+0027 does.
+	U+201A is easy to miss because it is the one that does not look
+	like an apostrophe. That is the reason this function encodes
+	rather than escapes - the delimiter set is a property of the
+	parser, not something this code should try to enumerate.
+	"""
+	voice_line = ""
+	if voice_name:
+		voice_line = (
+			"$b=[Convert]::FromBase64String('%s');"
+			"$s.SelectVoice([System.Text.Encoding]::UTF8.GetString($b));"
+		) % _ps_b64_utf8(voice_name)
+	return (
+		"Add-Type -AssemblyName System.Speech;"
+		"$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+		+ voice_line
+		+ "$b=[Convert]::FromBase64String('%s');" % _ps_b64_utf8(msg)
+		+ "$s.Speak([System.Text.Encoding]::UTF8.GetString($b));"
+	)
+
+def _sapi5_speak(msg):
+	"""Speak *msg* using the selected SAPI5 voice on a background thread.
+
+	Respects the mute-notifications setting — does nothing when muted.
+	Tries two methods in order:
+	1. win32com.client — synchronous speak (flag=0) so the SpVoice object stays
+	   alive until speech finishes.  CoInitialize is called explicitly because
+	   NVDA addon threads may not have a COM apartment set up.
+	2. PowerShell fallback — works even without win32com (uses default voice).
+	"""
+	if _notifications_muted():
+		return
+	wx.CallAfter(_braille_message, msg)
+	def _speak():
+		import config as _config
+		voice_name = _config.conf["freeAudio"].get("sapi5_voice_name", "")
+
+		# --- Method 1: comtypes (bundled with NVDA, preferred) ---
+		try:
+			import comtypes.client
+			spk = comtypes.client.CreateObject("SAPI.SpVoice")
+			if voice_name:
+				voices = spk.GetVoices()
+				for i in range(voices.Count):
+					v = voices.Item(i)
+					if v.GetDescription() == voice_name:
+						spk.Voice = v
+						break
+			spk.Speak(msg, 0)  # 0 = SVSFlagDefault (synchronous)
+			return
+		except Exception as e:
+			log.warning("freeAudio: comtypes SAPI5 speak failed: %s", e)
+
+		# --- Method 2: win32com ---
+		try:
+			import pythoncom
+			import win32com.client
+			pythoncom.CoInitialize()
+			try:
+				spk = win32com.client.Dispatch("SAPI.SpVoice")
+				if voice_name:
+					for v in spk.GetVoices():
+						if v.GetDescription() == voice_name:
+							spk.Voice = v
+							break
+				spk.Speak(msg, 0)
+			finally:
+				pythoncom.CoUninitialize()
+			return
+		except Exception as e:
+			log.warning("freeAudio: win32com SAPI5 speak failed: %s", e)
+
+		# --- Method 3: PowerShell fallback (default voice only) ---
+		#
+		# SECURITY: this block used to interpolate both the spoken text and
+		# the voice name straight into a double-quoted PowerShell string,
+		# with only double quotes stripped from the text as "sanitisation".
+		# That is not sufficient: PowerShell evaluates $variable references
+		# and $(subexpression) commands inside double-quoted strings, and
+		# neither of those needs a quote character to appear. The spoken
+		# text comes from the stream's own ICY StreamTitle (see
+		# trackInfoMixin.py's _icy_poll_loop), which the station - or
+		# anyone able to MITM an https:// stream that fell back to the
+		# relaxed-TLS path in recorder.py - controls entirely, so this was
+		# an arbitrary command execution sink reachable with nothing more
+		# than the station playing.
+		#
+		# Fixed two ways, both required:
+		#   1. The whole script is built with single-quoted PowerShell
+		#      string literals. A single-quoted PowerShell string is the
+		#      only form that is truly literal: no $variable expansion, no
+		#      $(subexpression) evaluation, no backtick escapes. An
+		#      embedded single quote is written as two single quotes.
+		#   2. The script is passed via -EncodedCommand (base64 UTF-16LE)
+		#      instead of -Command, so nothing is interpreted by a shell
+		#      at the process boundary either - there is no command line
+		#      to inject into at all.
+		try:
+			import subprocess
+
+			script = _build_sapi5_ps_script(msg, voice_name)
+			encoded = base64.b64encode(
+				script.encode("utf-16-le")
+			).decode("ascii")
+			subprocess.Popen(
+				[
+					"powershell", "-NoProfile", "-WindowStyle", "Hidden",
+					"-EncodedCommand", encoded,
+				],
+				creationflags=0x08000000,  # CREATE_NO_WINDOW
+			)
+		except Exception:
+			pass
+
+	import threading as _threading
+	_threading.Thread(target=_speak, daemon=True).start()
+
+
+def _list_sapi5_voices():
+	"""Return a list of available SAPI5 voice description strings.
+
+	Uses comtypes (bundled with NVDA) instead of win32com.
+	Returns an empty list if SAPI is unavailable or broken.
+	"""
+	try:
+		import comtypes.client
+		import comtypes.gen.SpeechLib as SpeechLib
+		spk = comtypes.client.CreateObject("SAPI.SpVoice")
+		voices = spk.GetVoices()
+		result = []
+		for i in range(voices.Count):
+			try:
+				result.append(voices.Item(i).GetDescription())
+			except Exception:
+				pass
+		log.info("freeAudio: found %d SAPI5 voices: %s", len(result), result)
+		return result
+	except Exception as e:
+		log.warning("freeAudio: _list_sapi5_voices failed: %s", e)
+
+	# Fallback: comtypes without pre-generated SpeechLib
+	try:
+		import comtypes.client
+		spk = comtypes.client.CreateObject("SAPI.SpVoice")
+		# GetVoices returns an ISpeechObjectTokens collection
+		voices = spk.GetVoices()
+		result = [voices.Item(i).GetDescription() for i in range(voices.Count)]
+		log.info("freeAudio: SAPI5 voices (fallback): %s", result)
+		return result
+	except Exception as e:
+		log.warning("freeAudio: _list_sapi5_voices fallback failed: %s", e)
+		return []
+
+
+try:
+	_ = globals()['_']
+except KeyError:
+	log.warning("Translation function '_' not found, using fallback.")
+	def _(text):
+		return text
+
+
+from . import radioPlayer, stationManager, recorder as recorderModule, jukebox
+from . import getem, librivox, gutenberg_audiobooks
+
+
+_AUDIO_DEVICE_REFRESH_MODE_KEYS = ["reliable", "fast"]
+
+
+def _audio_device_refresh_mode():
+	mode = config.conf["freeAudio"].get("audio_device_refresh_mode", "reliable")
+	return mode if mode in _AUDIO_DEVICE_REFRESH_MODE_KEYS else "reliable"
+
+
+def _init_config():
+	config.conf.spec["freeAudio"] = {
+		"volume":           "integer(default=100, min=0, max=100)",
+		# Set once the one-time import of a previous FreeRadio install has
+		# run - see legacyMigration.py.
+		"legacy_migrated":  "boolean(default=False)",
+		"last_station_url": "string(default='')",
+		"last_station_name":"string(default='')",
+		"last_station_uuid":"string(default='')",
+		"last_station_tags":"string(default='')",
+		# Only meaningful when last_station_tags equals "audiobook" exactly -
+		# see GlobalPlugin._rebuild_getem_resume_url() in playbackCoreMixin.py.
+		# GETEM chapters stream through a local proxy whose registered
+		# tokens live only in memory (getem._proxy_chapters), so
+		# last_station_url alone is a dead link by the next NVDA startup;
+		# these let the resume path look the book back up in the library
+		# and re-register a fresh proxy URL for the right chapter.
+		"last_station_getem_detail_url":     "string(default='')",
+		"last_station_getem_chapter_index":  "integer(default=0)",
+		# Only meaningful when last_station_tags equals "podcast" exactly and
+		# it's NOT a GETEM audio book (those use the getem_* keys above
+		# instead) - lets the resume path re-apply the subscribed feed's
+		# saved audio profile (volume/effects/EQ/speed), same as
+		# _rebuild_getem_resume_url() does for audio books. See
+		# GlobalPlugin._resume_last_station().
+		"last_station_podcast_feed_url":     "string(default='')",
+		"resume_on_start":  "boolean(default=False)",
+		"hotkey_p_action":  "string(default='resume')",
+		"hotkey_p_double":  "string(default='none')",
+		"hotkey_p_triple":  "string(default='none')",
+		"ffmpeg_path":       "string(default='')",
+		"audio_fx":          "string(default='none')",
+		# Comma-separated subset of {"getem","librivox","gutenberg"} - which
+		# audio book sources are actually searched from the Audio Books tab
+		# (see radioDialog._enabled_audiobook_sources()). All three enabled
+		# by default; freeAudioSettingsPanel's "Audio book sources" checklist
+		# is what edits this, in settingsPanel.py.
+		"audiobook_sources": "string(default='getem,librivox,gutenberg')",
+		# Comma-separated subset of {"podcast","audiobook","jukebox"} -
+		# which of those three whole tabs/modules are shown at all (see
+		# RadioDialog._enabled_optional_modules()/._tab_pos() in
+		# radioDialog.py). All three enabled by default, matching the
+		# add-on's behaviour before this setting existed. Edited by
+		# freeAudioSettingsPanel's "Modules" checklist in settingsPanel.py;
+		# takes effect the next time the station browser dialog is (re)built,
+		# not on existing open dialogs.
+		"enabled_modules": "string(default='podcast,audiobook,jukebox')",
+		# Whether the Jukebox tab's disk search walks mapped/UNC network
+		# drives as well as local ones - off by default, since a network
+		# share can make the search dramatically slower or hang if it's
+		# unreachable. See jukebox._list_drive_roots()'s include_network
+		# parameter and freeAudioSettingsPanel's checkbox that edits this.
+		"jukebox_search_network_drives": "boolean(default=False)",
+		"audio_device":      "integer(default=-1)",
+		"audio_device_name": "string(default='')",
+		"audio_device_refresh_mode": "string(default='reliable')",
+		"eq_gain_eq_bass":   "integer(default=9)",
+		"eq_gain_eq_treble": "integer(default=9)",
+		"eq_gain_eq_vocal":  "integer(default=6)",
+		"announce_track_changes":"boolean(default=False)",
+		"track_change_voice":    "string(default='screen_reader')",
+		"sapi5_voice_name":      "string(default='')",
+		"mute_notifications":    "boolean(default=False)",
+		"braille_messages":      "boolean(default=False)",
+		"braille_messages_outside_dialog": "boolean(default=False)",
+		"save_liked_songs":       "boolean(default=False)",
+		"recordings_dir":         "string(default='')",
+		"recording_format":       "string(default='original')",
+		"recording_mp3_bitrate":  "integer(default=128, min=64, max=320)",
+		"auto_check_updates":     "boolean(default=True)",
+		"disable_internet_check": "boolean(default=False)",
+		"crossfade":              "string(default='off')",  # off | short | normal | tuning
+		"result_limit":           "integer(default=1000, min=100, max=100000)",
+		"timeshift_enabled":      "boolean(default=False)",
+		"timeshift_buffer_seconds": "integer(default=600, min=600, max=18000)",
+		# Obligato mode - a favourite station played quietly in the
+		# background, independent of whatever is on the main player, until
+		# toggled off. See obligatoMixin.py.
+		"obligato_station_uuid":       "string(default='')",
+		"obligato_station_name":       "string(default='')",
+		"obligato_station_url":        "string(default='')",
+		# "same" (mirror the main output device), "default" (system
+		# default), or a BASS device index stored as a string.
+		"obligato_audio_device":       "string(default='same')",
+		"obligato_audio_device_name":  "string(default='')",
+		# Background volume as a percentage of the main player's volume.
+		"obligato_volume_ratio":       "integer(default=50, min=5, max=200)",
+	}
+
+_init_config()
+
+
+def _cleanup_orphaned_timeshift_buffers():
+	"""Remove leftover freeAudio_timeshift_*.buf files from previous
+	sessions. TimeShiftBuffer.stop() normally deletes its own buffer file,
+	but that only runs on a clean shutdown - an abrupt one (crash, power
+	loss, Windows forcing NVDA closed) skips it, leaving the file behind in
+	the temp folder. Safe to do unconditionally here: this runs during
+	add-on startup, before any capture session of this run has begun, so
+	every matching file at this point is necessarily orphaned.
+	"""
+	try:
+		tmp_dir = tempfile.gettempdir()
+		for name in os.listdir(tmp_dir):
+			if name.startswith("freeAudio_timeshift_") and name.endswith(".buf"):
+				try:
+					os.remove(os.path.join(tmp_dir, name))
+				except OSError:
+					pass
+	except OSError:
+		pass
+
+
+from . import legacyMigration
+from .settingsPanel import freeAudioSettingsPanel
+from .timerManager import TimerManager
+from .audioDeviceMixin import AudioDeviceMixin
+from .playbackCoreMixin import PlaybackCoreMixin
+from .timeshiftMixin import TimeshiftMixin
+from .audioFxMixin import AudioFxMixin
+from .recordingMixin import RecordingMixin
+from .trackInfoMixin import TrackInfoMixin
+from .miscTogglesMixin import MiscTogglesMixin
+from .obligatoMixin import ObligatoMixin
+from .bookmarkMixin import BookmarkMixin
+
+
+class GlobalPlugin(BookmarkMixin, ObligatoMixin, MiscTogglesMixin, TrackInfoMixin, RecordingMixin, AudioFxMixin, TimeshiftMixin, PlaybackCoreMixin, AudioDeviceMixin, globalPluginHandler.GlobalPlugin):
+
+	# Default gesture bindings for scripts defined on mixin base classes
+	# (AudioDeviceMixin, PlaybackCoreMixin, TimeshiftMixin, AudioFxMixin,
+	# RecordingMixin, TrackInfoMixin - MiscTogglesMixin has none, see its
+	# module docstring) rather than directly in this class body.
+	#
+	# NVDA's @script(gesture=...) only auto-registers a default binding for
+	# scripts found in the *literal* namespace of the class being built by
+	# ScriptableType - it does not walk the MRO - so a gesture= kwarg on a
+	# script inherited from a mixin is silently dropped. The __gestures
+	# dict below is NVDA's documented alternative mechanism for binding
+	# gestures (gesture id -> script name without the "script_" prefix)
+	# and is read directly off this class, so it works regardless of which
+	# base class actually defines the script. Every default gesture that
+	# lives on a mixin must be listed here.
+	__gestures = {
+		"kb:control+windows+m": "mirrorAudio",
+		"kb:control+windows+p": "pauseResume",
+		"kb:control+windows+s": "stop",
+		"kb:control+windows+rightArrow": "nextStation",
+		"kb:control+windows+leftArrow": "prevStation",
+		"kb:control+windows+j": "timeshiftRewind",
+		"kb:control+windows+k": "timeshiftForward",
+		"kb:control+windows+alt+j": "timeshiftRewindFine",
+		"kb:control+windows+alt+k": "timeshiftForwardFine",
+		"kb:control+windows+t": "toggleTimeshift",
+		"kb:control+windows+upArrow": "volumeUp",
+		"kb:control+windows+downArrow": "volumeDown",
+		"kb:control+windows+shift+k": "playbackRateUp",
+		"kb:control+windows+shift+j": "playbackRateDown",
+		"kb:shift+windows+k": "transposeUp",
+		"kb:shift+windows+j": "transposeDown",
+		"kb:control+windows+e": "toggleRecord",
+		"kb:control+windows+w": "openRecordingsFolder",
+		"kb:control+windows+i": "whatsPlaying",
+		"kb:control+shift+windows+m": "toggleObligato",
+		"kb:control+windows+f12": "addBookmark",
+		"kb:control+windows+f3": "navPrevItem",
+		"kb:control+windows+f4": "navNextItem",
+		"kb:control+windows+shift+f3": "navPrevGroup",
+		"kb:control+windows+shift+f4": "navNextGroup",
+	}
+
+	def __init__(self):
+		super().__init__()
+		# Work around a rare wxWidgets/MSW notebook bug: if the native tab
+		# control's item count and wx's internal page list momentarily
+		# disagree (can happen around rapid Show()/SetSelection() sequences,
+		# DPI or display changes, etc.), wx's C++ assertion machinery raises
+		# a wxAssertionError from *inside* GetPageCount() itself - before
+		# execution ever reaches any Python try/except in radioDialog.py,
+		# including the existing "GetPageCount() == 0" safety checks. That
+		# escapes as an unhandled "SystemError: wx._core.BookCtrlEvent
+		# returned a result with an exception set" and the dialog silently
+		# fails to open/switch tabs. Disabling wx's assert-to-exception
+		# behavior turns that into a harmless logged wx assertion instead
+		# of a crash - it doesn't fix the underlying HWND/page-count race,
+		# but it stops that race from breaking the dialog for the user.
+		wx.DisableAsserts()
+		_cleanup_orphaned_timeshift_buffers()
+		# Import a previous FreeRadio install's settings/data (once). Must run
+		# before anything below reads config or opens a data file.
+		legacyMigration.run()
+		self._player  = radioPlayer.RadioPlayer()
+		self._player.set_audio_device_refresh_mode(_audio_device_refresh_mode())
+		self._player.set_volume(config.conf["freeAudio"]["volume"])
+		# Time-shift buffer (rewind/fast-forward live radio) - disabled by
+		# default, opt-in via the settings panel or config.
+		self._player.set_timeshift_enabled(
+			config.conf["freeAudio"].get("timeshift_enabled", False)
+		)
+		self._player.set_timeshift_capacity_seconds(
+			config.conf["freeAudio"].get("timeshift_buffer_seconds", 600)
+		)
+		self._player.set_timeshift_disk_full_callback(
+			lambda: wx.CallAfter(
+				_notify,
+				# Translators: Spoken automatically while a live recording is in progress if the time-shift disk-space limit is reached and old buffered audio is being discarded faster than usual.
+				_("Time-shift buffer: running low on disk space, the oldest audio is being dropped more aggressively."),
+			)
+		)
+		# Apply saved audio output device
+		_saved_device = config.conf["freeAudio"].get("audio_device", -1)
+		_saved_device_name = config.conf["freeAudio"].get("audio_device_name", "")
+		_devices = []
+		try:
+			_devices = self._player.get_audio_devices()
+		except Exception:
+			pass
+		if _devices:
+			if _saved_device_name:
+				try:
+					_resolved_device, _resolved_name, _match = self._player.resolve_audio_device(
+						_devices,
+						_saved_device,
+						_saved_device_name,
+					)
+					if _match == "name" and _resolved_device != _saved_device:
+						_saved_device = _resolved_device
+						config.conf["freeAudio"]["audio_device"] = _resolved_device
+						config.conf["freeAudio"]["audio_device_name"] = _resolved_name
+				except Exception:
+					pass
+			elif _saved_device != -1:
+				try:
+					_resolved_device, _resolved_name, _match = self._player.resolve_audio_device(
+						_devices,
+						_saved_device,
+						"",
+					)
+					if _match == "index":
+						config.conf["freeAudio"]["audio_device_name"] = _resolved_name
+				except Exception:
+					pass
+		if _saved_device != -1:
+			try:
+				_actual_device = self._player.switch_output_device(_saved_device)
+				if _actual_device != _saved_device:
+					config.conf["freeAudio"]["audio_device"] = _actual_device
+					_actual_name = ""
+					for _idx, _name in _devices:
+						if _idx == _actual_device:
+							_actual_name = _name
+							break
+					config.conf["freeAudio"]["audio_device_name"] = _actual_name
+			except Exception:
+				pass
+		# Apply saved audio FX setting
+		_saved_fx = config.conf["freeAudio"].get("audio_fx", "none")
+		if _saved_fx and _saved_fx != "none":
+			self._player.set_fx(_saved_fx)
+		# Apply saved crossfade / station-tuning transition setting
+		_cf_map = {"off": 0.0, "short": 1.0, "normal": 2.0, "tuning": 0.0}
+		_saved_cf = config.conf["freeAudio"].get("crossfade", "off")
+		self._player.set_tuning_effect_enabled(_saved_cf == "tuning")
+		self._player.set_crossfade_duration(_cf_map.get(_saved_cf, 0.0))
+		# Notify and reset settings when audio device is lost
+		self._player.on_device_lost = self._on_audio_device_lost
+		# Notify when a station's BASS connection attempt fails outright,
+		# instead of silently leaving the UI showing "playing" with no
+		# audio and no explanation - see radioPlayer.py's on_play_failed
+		# docstring for the full "why this exists" rationale.
+		self._player.on_play_failed = self._on_play_failed
+		# Tell the user when a station is played through a compatibility mode
+		# (currently: ABC HLS stations, which BASS can't play directly).
+		self._player.on_notice = self._on_player_notice
+		# Refresh the podcast episode list's row when a position is saved
+		# due to a pause or the episode finishing (not the periodic autosave).
+		self._player.on_podcast_progress_saved = self._on_podcast_progress_saved
+		# Auto-advance to the next part/track when a GETEM audio book
+		# chapter or a jukebox folder reaches its end on its own (regular
+		# podcast episodes are left as manual advance - see
+		# RadioDialog._on_playback_finished()).
+		self._player.on_podcast_finished = self._on_podcast_finished
+		# Bookmarks: beep / note playback when playback reaches one.
+		self._init_bookmarks()
+		self._manager = stationManager.StationManager()
+		# Initialize Recorder with dll_dir, volume and main player reference
+		dll_dir = os.path.dirname(os.path.abspath(__file__))
+		self._recorder = recorderModule.Recorder(
+			dll_dir=dll_dir,
+			volume=config.conf["freeAudio"]["volume"],
+			main_player=self._player,   # pass main player to avoid interruption
+			recording_format=config.conf["freeAudio"].get("recording_format", "original"),
+			mp3_bitrate=config.conf["freeAudio"].get("recording_mp3_bitrate", 128),
+			ffmpeg_path=config.conf["freeAudio"].get("ffmpeg_path", ""),
+		)
+		self._recorder._notify_start  = lambda rec: wx.CallAfter(
+			# Translators: Spoken when a scheduled or manual recording begins; %s is the station name.
+			_notify, _("Recording started: %s") % rec.station.get("name", "")
+		)
+		self._recorder._notify_finish = lambda rec: wx.CallAfter(
+			# Translators: Spoken when a recording finishes normally; %s is the saved output filename.
+			_notify, _("Recording finished: %s") % os.path.basename(rec.output_path or "")
+		)
+		self._recorder._notify_failed = lambda rec: wx.CallAfter(
+			_notify,
+			# Translators: Spoken when a recording never actually started because the stream connection failed for its whole scheduled window; %s is the station name.
+			_("Recording failed: could not connect to %s") % rec.station.get("name", ""),
+		)
+		self._recorder._notify_conversion_error = lambda path, error: wx.CallAfter(
+			_notify,
+			# Translators: Spoken when converting a finished recording to the configured format (e.g. MP3) fails; the original, unconverted file is kept. %s is its filename.
+			_("Recording conversion failed. The original file was kept: %s")
+			% os.path.basename(path or ""),
+		)
+		self._recorder._notify_folder_fallback = lambda rec, requested, reason: wx.CallAfter(
+			_notify,
+			# Translators: Spoken when the folder configured for recordings can't be used (e.g. missing/no permission) and freeAudio saved to its default folder instead; %(station)s is the station name, %(reason)s is why the folder failed.
+			_("Could not use the selected folder for '%(station)s' (%(reason)s). "
+			  "Saved to the default recordings folder instead.")
+			% {"station": rec.station.get("name", ""), "reason": reason},
+		)
+		# Song-capture: the recorder reports a track change it spotted in the
+		# recorded stream itself (see trackInfoMixin._on_recorder_song_boundary).
+		self._recorder._notify_song_boundary = self._on_recorder_song_boundary
+		self._stations      = []
+		self._current_index = -1
+		self._dialog        = None
+		# Obligato mode (background music) - see obligatoMixin.py.
+		self._obligato_active      = False
+		self._obligato_dialog_open = False
+		self._obligato_player      = None
+		self._obligato_station     = None
+		self._obligato_ratio       = config.conf["freeAudio"].get("obligato_volume_ratio", 50)
+		self._obligato_sync_stop   = None
+		self._obligato_sync_thread = None
+		gui.NVDASettingsDialog.categoryClasses.append(freeAudioSettingsPanel)
+		# Written through globalVars.appArgs.configPath, same as every other
+		# freeAudio data file (favourites, podcasts, jukebox library, GETEM
+		# cache/library) - NOT into the add-on's own install directory.
+		# NVDA removes and re-creates that directory on every add-on update,
+		# so a path built from __file__ here lost every pending sleep/alarm
+		# timer on each update; configPath survives updates the same way it
+		# already does for favourites/podcasts/etc.
+		_timers_path = os.path.join(globalVars.appArgs.configPath, "freeAudio_timers.json")
+		self._timer_manager = TimerManager(
+			self._player, self._manager,
+			save_path=_timers_path,
+			play_callback=self._on_station_selected,
+		)
+		if config.conf["freeAudio"].get("resume_on_start"):
+			wx.CallAfter(self._resume_last_station)
+		wx.CallAfter(self._build_tools_menu)
+		# Check for updates in the background after a short delay
+		if config.conf["freeAudio"].get("auto_check_updates", True):
+			t = threading.Timer(15.0, self._check_for_updates, kwargs={"silent": True})
+			t.daemon = True
+			t.start()
+
+		# ICY metadata auto-announce
+		self._icy_last_title   = None
+		self._icy_poll_stop    = threading.Event()
+		self._icy_poll_thread  = threading.Thread(
+			target=self._icy_poll_loop, daemon=True
+		)
+		self._icy_poll_thread.start()
+
+		# Build dynamic scripts for favourite stations so they appear in
+		# NVDA's Input Gestures dialog under "freeAudio Stations".
+		self._station_script_names = []   # track names for cleanup
+		self._rebuild_station_scripts()
+
+		# Same idea for jukebox entries, under "freeAudio Jukebox" - see
+		# _rebuild_jukebox_scripts(). JukeboxManager is cheap to construct
+		# (it just reloads the small library JSON from disk, the same way
+		# StationManager does for favourites), so it's instantiated fresh
+		# here and inside each generated script rather than kept as a
+		# long-lived attribute on GlobalPlugin - the dialog's own
+		# _jukebox_manager, built the same way, is always the one actually
+		# mutated by the UI.
+		self._jukebox_script_names = []   # track names for cleanup
+		self._rebuild_jukebox_scripts()
+
+		# Same idea for audio book library entries (GETEM, LibriVox and
+		# Project Gutenberg), under "freeAudio Audio Books" - see
+		# _rebuild_audiobook_scripts().
+		self._audiobook_script_names = []   # track names for cleanup
+		self._rebuild_audiobook_scripts()
+
+	def _rebuild_station_scripts(self):
+		"""Create or refresh one script per favourite station.
+
+		Each script is named  script_playFavoriteStation_<sanitised_uuid>
+		and appears in the "freeAudio Stations" category of NVDA's Input
+		Gestures dialog.  The user can assign any keyboard shortcut there;
+		NVDA stores it in userGestureMap and it persists across sessions as
+		long as the station remains a favourite.
+
+		Call this whenever the favourites list changes (add / remove / reload).
+		"""
+		import inputCore
+
+		# ── 1. Remove scripts that no longer correspond to a favourite ───────
+		favs     = self._manager.get_favorites()
+		fav_uids = {self._sanitise_uuid(s.get("stationuuid", "")) for s in favs}
+
+		stale = [n for n in self._station_script_names if n not in
+		         {"script_playFavoriteStation_" + uid for uid in fav_uids}]
+		for name in stale:
+			try:
+				delattr(self.__class__, name)
+			except AttributeError:
+				pass
+		self._station_script_names = [
+			n for n in self._station_script_names if n not in stale
+		]
+
+		# ── 2. Create / refresh a script for every favourite ─────────────────
+		# Translators: Script category shown in NVDA's Input Gestures dialog, grouping the auto-generated 'play this favourite station' shortcuts separately from freeAudio's main commands.
+		_CATEGORY = _("freeAudio Stations")
+
+		for station in favs:
+			uid        = self._sanitise_uuid(station.get("stationuuid", ""))
+			if not uid:
+				continue
+			script_name = "script_playFavoriteStation_" + uid
+			station_name = station.get("name", "").strip()
+
+			# Build the script function with a closure over *station*.
+			def _make_script(s):
+				def _script(self_plugin, gesture):
+					favs_now = self_plugin._manager.get_favorites()
+					match    = next(
+						(x for x in favs_now
+						 if x.get("stationuuid") == s.get("stationuuid")),
+						None,
+					)
+					if match is None:
+						ui.message(
+							# Translators: Spoken if a per-favourite-station shortcut is triggered after that station was removed from favourites since the shortcut was created; %s is the station name.
+							_("Station no longer in favourites: %s")
+							% s.get("name", "").strip()
+						)
+						return
+					self_plugin._stations      = favs_now
+					self_plugin._current_index = favs_now.index(match)
+					self_plugin._play_station(match)
+				# NVDA reads __doc__ as the script description and
+				# __name__ as the script identifier.
+				# Translators: Auto-generated description of a per-favourite-station shortcut, shown in NVDA's Input Gestures dialog; %s is the station name.
+				_script.__doc__      = _("%s playback shortcut") % s.get("name", "").strip()
+				_script.__name__     = script_name
+				_script.category     = _CATEGORY
+				# No default gesture — user assigns one via Input Gestures dialog.
+				_script.__gestures__ = {}
+				return _script
+
+			fn = _make_script(station)
+			# Attach to the class so NVDA discovers it via introspection.
+			if not hasattr(self.__class__, script_name):
+				setattr(self.__class__, script_name, fn)
+				self._station_script_names.append(script_name)
+			else:
+				# Update description in case the station was renamed.
+				existing = getattr(self.__class__, script_name)
+				existing.__doc__ = fn.__doc__
+
+	@staticmethod
+	def _sanitise_uuid(uid):
+		"""Return a string safe to use as part of a Python identifier."""
+		return uid.replace("-", "_").replace(".", "_")
+
+	def _rebuild_jukebox_scripts(self):
+		"""Create or refresh one script per jukebox entry (file or folder).
+
+		Mirrors _rebuild_station_scripts() above: each script is named
+		script_playJukeboxEntry_<sanitised_path> and appears in the
+		"freeAudio Jukebox" category of NVDA's Input Gestures dialog, with
+		no default gesture so the user assigns one there.
+
+		Call this whenever the jukebox library changes (add / remove /
+		import, or a bulk-remove).
+		"""
+		import inputCore
+
+		# ── 1. Remove scripts that no longer correspond to an entry ──────────
+		entries      = jukebox.JukeboxManager().get_entries()
+		entry_hashes = {self._sanitise_path(e.path) for e in entries}
+
+		stale = [n for n in self._jukebox_script_names if n not in
+		         {"script_playJukeboxEntry_" + h for h in entry_hashes}]
+		for name in stale:
+			try:
+				delattr(self.__class__, name)
+			except AttributeError:
+				pass
+		self._jukebox_script_names = [
+			n for n in self._jukebox_script_names if n not in stale
+		]
+
+		# ── 2. Create / refresh a script for every entry ─────────────────────
+		# Translators: Script category shown in NVDA's Input Gestures dialog, grouping the auto-generated 'play this jukebox entry' shortcuts separately from freeAudio's main commands.
+		_CATEGORY = _("freeAudio Jukebox")
+
+		for entry in entries:
+			path_hash = self._sanitise_path(entry.path)
+			if not path_hash:
+				continue
+			script_name  = "script_playJukeboxEntry_" + path_hash
+			entry_path   = entry.path
+			entry_title  = entry.title
+
+			# Build the script function with a closure over *entry_path*.
+			def _make_script(path, title):
+				def _script(self_plugin, gesture):
+					manager = jukebox.JukeboxManager()
+					match = next(
+						(e for e in manager.get_entries() if e.path == path),
+						None,
+					)
+					if match is None:
+						ui.message(
+							# Translators: Spoken if a per-jukebox-entry shortcut is triggered after that entry was removed from the jukebox since the shortcut was created; %s is the entry's display title.
+							_("Entry no longer in the jukebox: %s") % title
+						)
+						return
+					self_plugin._play_jukebox_entry_headless(match)
+				# NVDA reads __doc__ as the script description and
+				# __name__ as the script identifier.
+				# Translators: Auto-generated description of a per-jukebox-entry shortcut, shown in NVDA's Input Gestures dialog; %s is the entry's display title.
+				_script.__doc__      = _("%s playback shortcut") % title
+				_script.__name__     = script_name
+				_script.category     = _CATEGORY
+				# No default gesture — user assigns one via Input Gestures dialog.
+				_script.__gestures__ = {}
+				return _script
+
+			fn = _make_script(entry_path, entry_title)
+			# Attach to the class so NVDA discovers it via introspection.
+			if not hasattr(self.__class__, script_name):
+				setattr(self.__class__, script_name, fn)
+				self._jukebox_script_names.append(script_name)
+			else:
+				# Update description in case the entry was renamed/regrouped.
+				existing = getattr(self.__class__, script_name)
+				existing.__doc__ = fn.__doc__
+
+	@staticmethod
+	def _sanitise_path(path):
+		"""Return a string safe to use as part of a Python identifier for a
+		filesystem path (which, unlike a station UUID, may contain '/',
+		'\\', ':' and other characters that aren't valid there). Hashed
+		rather than character-replaced, since paths can also be far longer
+		than is reasonable for an identifier."""
+		if not path:
+			return ""
+		norm = os.path.normcase(os.path.normpath(path))
+		return hashlib.md5(norm.encode("utf-8", "surrogateescape")).hexdigest()
+
+	def _play_jukebox_entry_headless(self, entry):
+		"""Play a jukebox entry (file or folder) the same way
+		RadioDialog._on_jukebox_entry_play() does, but without needing the
+		dialog to be open - used by the per-entry Input Gestures shortcuts
+		built in _rebuild_jukebox_scripts(). For a folder, starts from
+		wherever that folder was last actually played to (see
+		RadioPlayer.get_jukebox_folder_position()), or the first track if
+		it's never been played; auto-advance to later tracks keeps working
+		afterwards purely through _advance_jukebox_folder_headless(),
+		exactly as it already does when a track finishes with the dialog
+		closed."""
+		manager = jukebox.JukeboxManager()
+		tracks = entry.tracks()
+		if not tracks:
+			# Translators: Spoken when a jukebox entry's Input Gestures shortcut is triggered but the entry has no usable audio files.
+			ui.message(_("No playable audio in this item."))
+			return
+		if entry.kind == "folder":
+			start = 0
+			saved = self._player.get_jukebox_folder_position(entry.path)
+			if saved is not None:
+				saved_index, _saved_path = saved
+				if 0 <= saved_index < len(tracks):
+					start = saved_index
+			track = tracks[start]
+			station_dict = track.to_dict()
+			profile = manager.get_track_profile(track.path)
+			if profile:
+				station_dict["station_audio"] = profile
+			station_dict["jukebox_folder_path"]  = entry.path
+			station_dict["jukebox_track_index"]  = start
+		else:
+			track = tracks[0]
+			station_dict = track.to_dict()
+			profile = manager.get_track_profile(track.path)
+			if profile:
+				station_dict["station_audio"] = profile
+		self._play_station(station_dict)
+
+	def _rebuild_audiobook_scripts(self):
+		"""Create or refresh one script per audio book in the libraries
+		(GETEM, LibriVox and Project Gutenberg).
+
+		Mirrors _rebuild_station_scripts()/_rebuild_jukebox_scripts(): each
+		script is named script_playAudiobook_<hash of detail_url> and
+		appears in the "freeAudio Audio Books" category of NVDA's Input
+		Gestures dialog, with no default gesture so the user assigns one
+		there. The book's detail_url is its identity key in all three
+		libraries (see GetemBook.identity_key() and friends), so it's
+		what's hashed.
+
+		Call this whenever an audio book library changes (add / remove).
+		"""
+		sources = (
+			(getem, getem.GetemLibrary),
+			(librivox, librivox.LibrivoxLibrary),
+			(gutenberg_audiobooks, gutenberg_audiobooks.GutenbergLibrary),
+		)
+		books = []   # (module, library class, book)
+		for module, library_cls in sources:
+			try:
+				for book in library_cls().get_books():
+					books.append((module, library_cls, book))
+			except Exception:
+				log.debug("freeAudio: could not read %s library", module.__name__, exc_info=True)
+
+		# ── 1. Remove scripts that no longer correspond to a book ────────────
+		wanted = {
+			"script_playAudiobook_" + self._sanitise_path(book.detail_url)
+			for _module, _cls, book in books
+		}
+		stale = [n for n in self._audiobook_script_names if n not in wanted]
+		for name in stale:
+			try:
+				delattr(self.__class__, name)
+			except AttributeError:
+				pass
+		self._audiobook_script_names = [
+			n for n in self._audiobook_script_names if n not in stale
+		]
+
+		# ── 2. Create / refresh a script for every book ──────────────────────
+		# Translators: Script category shown in NVDA's Input Gestures dialog, grouping the auto-generated 'play this audio book' shortcuts separately from freeAudio's main commands.
+		_CATEGORY = _("freeAudio Audio Books")
+
+		for module, library_cls, book in books:
+			path_hash = self._sanitise_path(book.detail_url)
+			if not path_hash:
+				continue
+			script_name = "script_playAudiobook_" + path_hash
+
+			def _make_script(module, library_cls, detail_url, title):
+				def _script(self_plugin, gesture):
+					self_plugin._play_audiobook_headless(module, library_cls, detail_url, title)
+				# NVDA reads __doc__ as the script description and
+				# __name__ as the script identifier.
+				# Translators: Auto-generated description of a per-audio-book shortcut, shown in NVDA's Input Gestures dialog; %s is the book's title.
+				_script.__doc__      = _("%s playback shortcut") % title
+				_script.__name__     = script_name
+				_script.category     = _CATEGORY
+				# No default gesture — user assigns one via Input Gestures dialog.
+				_script.__gestures__ = {}
+				return _script
+
+			fn = _make_script(module, library_cls, book.detail_url, book.title)
+			# Attach to the class so NVDA discovers it via introspection.
+			if not hasattr(self.__class__, script_name):
+				setattr(self.__class__, script_name, fn)
+				self._audiobook_script_names.append(script_name)
+			else:
+				# Update description in case the title changed.
+				existing = getattr(self.__class__, script_name)
+				existing.__doc__ = fn.__doc__
+
+	def _play_audiobook_headless(self, module, library_cls, detail_url, title):
+		"""Play an audio book from its library without needing the dialog
+		open - used by the per-book Input Gestures shortcuts built in
+		_rebuild_audiobook_scripts(). Resumes from the part that was last
+		played (book.last_chapter_index); the exact position inside that
+		part is restored by the player's own podcast resume store, keyed on
+		the part's URL.
+
+		A book saved without its part list yet (or one that has to be
+		looked up again) is resolved on a background thread first, since
+		that's a network request - GETEM additionally needs the saved
+		login."""
+		library = library_cls()
+		book = library.get_book_by_key(detail_url)
+		if book is None:
+			ui.message(
+				# Translators: Spoken if a per-audio-book shortcut is triggered after that book was removed from the library since the shortcut was created; %s is the book's title.
+				_("Audio book no longer in the library: %s") % title
+			)
+			return
+		if book.chapters:
+			self._start_audiobook_chapter_headless(module, library, book)
+			return
+
+		# Translators: Spoken while an audio book's list of parts is being fetched before it starts playing; %s is the book's title.
+		ui.message(_("Loading %s") % book.title)
+
+		def _worker():
+			try:
+				_book, error = module.resolve_media(book)
+			except Exception as e:
+				log.warning("freeAudio: audio book resolve failed", exc_info=True)
+				error = str(e)
+			if error or not book.chapters:
+				wx.CallAfter(ui.message, error or book.title)
+				return
+			library.save()
+			wx.CallAfter(self._start_audiobook_chapter_headless, module, library, book)
+
+		threading.Thread(target=_worker, daemon=True).start()
+
+	def _start_audiobook_chapter_headless(self, module, library, book):
+		"""Start the book's resume part through the normal _play_station()
+		path (must run on the main thread). The station dict comes from
+		_rebuild_getem_resume_url() in playbackCoreMixin.py - the same
+		builder the NVDA-startup resume uses, which produces the same
+		shape RadioDialog._start_getem_chapter() does (name, stream URL,
+		podcast_resume_key, getem_chapter_index, audiobook_chapter_title,
+		audio profile), so resume, seek and speed behave identically to
+		playing from the dialog."""
+		index = book.last_chapter_index
+		if not (0 <= index < len(book.chapters)):
+			index = 0
+		station = self._rebuild_getem_resume_url(book.detail_url, index)
+		if not station:
+			# Translators: Spoken when a per-audio-book shortcut can't start playback because the book's parts could not be prepared; %s is the book's title.
+			ui.message(_("Could not play %s") % book.title)
+			return
+		library.mark_progress(book, index)
+		self._play_station(station)
+
+	def _build_tools_menu(self):
+		"""Add a freeAudio submenu under NVDA's Tools menu."""
+		tools_menu = gui.mainFrame.sysTrayIcon.toolsMenu
+		self._freeAudio_menu = wx.Menu()
+
+		item_browser = self._freeAudio_menu.Append(
+			wx.ID_ANY,
+			# Translators: Menu item that opens the freeAudio station browser dialog
+			_("Station &Browser...\tCtrl+Win+R"),
+		)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU, lambda evt: wx.CallAfter(self._open_dialog), item_browser
+		)
+
+		item_settings = self._freeAudio_menu.Append(
+			wx.ID_ANY,
+			# Translators: Menu item that opens freeAudio settings in NVDA preferences
+			_("freeAudio &Settings..."),
+		)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU, self._on_menu_settings, item_settings
+		)
+
+		item_update = self._freeAudio_menu.Append(
+			wx.ID_ANY,
+			# Translators: Menu item that manually triggers the update check
+			_("Check for &Updates..."),
+		)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU,
+			lambda evt: threading.Thread(
+				target=self._check_for_updates, kwargs={"silent": False}, daemon=True
+			).start(),
+			item_update,
+		)
+
+		self._tools_menu_item = tools_menu.AppendSubMenu(
+			self._freeAudio_menu,
+			# Translators: Label of the freeAudio submenu in NVDA Tools menu
+			_("&freeAudio"),
+		)
+
+	def _on_menu_settings(self, evt):
+		"""Open NVDA Settings dialog on the freeAudio category."""
+		wx.CallAfter(
+			gui.mainFrame._popupSettingsDialog,
+			gui.NVDASettingsDialog,
+			freeAudioSettingsPanel,
+		)
+
+
+	def terminate(self):
+		# Remove all dynamically created favourite-station scripts from the class.
+		for name in getattr(self, "_station_script_names", []):
+			try:
+				delattr(self.__class__, name)
+			except AttributeError:
+				pass
+		self._station_script_names = []
+
+		for name in getattr(self, "_audiobook_script_names", []):
+			try:
+				delattr(self.__class__, name)
+			except AttributeError:
+				pass
+		self._audiobook_script_names = []
+
+		try:
+			gui.NVDASettingsDialog.categoryClasses.remove(freeAudioSettingsPanel)
+		except ValueError:
+			pass
+
+		# Safely remove the freeAudio submenu from the Tools menu
+		try:
+			if hasattr(self, "_tools_menu_item") and self._tools_menu_item:
+				tools_menu = gui.mainFrame.sysTrayIcon.toolsMenu
+				# Use Delete instead of Remove to fully destroy the item and allow clean NVDA shutdown
+				tools_menu.Delete(self._tools_menu_item.GetId())
+				self._tools_menu_item = None
+		except Exception:
+			log.debug("freeAudio: Tools menu item could not be removed", exc_info=True)
+
+		try:
+			if hasattr(self, "_freeAudio_menu") and self._freeAudio_menu:
+				self._freeAudio_menu.Destroy()
+				self._freeAudio_menu = None
+		except Exception:
+			pass
+
+		self._icy_poll_stop.set()
+		self._terminate_obligato()
+		self._timer_manager.terminate()
+		self._player.terminate()
+		self._recorder.terminate()
+
+		if self._dialog:
+			try:
+				self._dialog._force_destroy()
+			except Exception:
+				pass
+			self._dialog = None
+
+		super().terminate()
+
+
+	@script(
+		# Translators: Name of an NVDA command; opens the freeAudio station browser dialog on its main Stations tab.
+		description=_("Open freeAudio station browser"),
+		category=_("freeAudio"),
+		gesture="kb:control+windows+r",
+	)
+	def script_openDialog(self, gesture):
+		wx.CallAfter(self._open_dialog)
+
+
+	@script(
+		# Translators: Name of an NVDA command; opens the station browser dialog on the Audio Books tab.
+		description=_("Open freeAudio audio book library"),
+		category=_("freeAudio"),
+		gesture="kb:control+windows+l",
+	)
+	def script_openLibrary(self, gesture):
+		wx.CallAfter(self._open_dialog_on_audiobooks)
+
+
+	@script(
+		# Translators: Name of an NVDA command; opens the station browser dialog on the Podcasts tab.
+		description=_("Open freeAudio podcast subscriptions"),
+		category=_("freeAudio"),
+		gesture="kb:control+windows+o",
+	)
+	def script_openPodcasts(self, gesture):
+		wx.CallAfter(self._open_dialog_on_podcasts)
+
+
+	@script(
+		# Translators: Name of an NVDA command; opens the station browser dialog on the local Jukebox tab.
+		description=_("Open freeAudio local jukebox"),
+		category=_("freeAudio"),
+		gesture="kb:control+windows+u",
+	)
+	def script_openJukebox(self, gesture):
+		wx.CallAfter(self._open_dialog_on_jukebox)
+
+
+	@script(
+		# Translators: Name of an NVDA command whose behaviour depends on what is currently playing: adds a live station to favourites, or downloads the current audio book/podcast episode.
+		description=_("Add currently playing station to favourites, download the whole audio book if one is playing, or download the episode if a podcast is playing"),
+		category=_("freeAudio"),
+		gesture="kb:control+windows+v",
+	)
+	def script_addToFavorites(self, gesture):
+		station = self._player.get_current_station()
+		if not station:
+			# Translators: Spoken when this shortcut is pressed while nothing is playing.
+			ui.message(_("No station is playing"))
+			return
+		media_kind = station.get("media_kind")
+		# Jukebox tracks have no equivalent "save" action for this
+		# shortcut - they're already local files, so there's nothing to
+		# add to favourites (they aren't radio-browser stations) and
+		# nothing to download (they're already on disk). Tell the user
+		# explicitly rather than silently falling through to the
+		# favourites branch below, which would have wrongly treated a
+		# jukebox track as a station.
+		if media_kind == "jukebox":
+			# Translators: Spoken when this shortcut is pressed while something is playing that is neither a station, podcast episode, nor audio book (e.g. a local jukebox track).
+			ui.message(_("The shortcut is only for stations, podcasts or audio books"))
+			return
+		# Checked ahead of the plain "podcast" branch below: GETEM/LibriVox
+		# chapters carry media_kind="audiobook" (see getem.GetemBook.to_dict()/
+		# librivox.LibriVoxBook.to_dict()), and a whole-book download - into
+		# its own folder, all parts - is what's wanted here rather than a
+		# single-episode-style download of just this part.
+		#
+		# Deliberately keyed off "media_kind" rather than the free-text
+		# "tags" field: a real Radio Browser station can legitimately carry
+		# "podcast" or "audiobook" as a community-assigned genre tag on an
+		# ordinary live stream, and matching against "tags" used to make
+		# this try to download a nonexistent podcast episode/GETEM book
+		# for such a station instead of just adding it to favourites.
+		if media_kind == "audiobook":
+			self._download_current_getem_book(station)
+			return
+		if media_kind == "podcast":
+			self._download_current_podcast_episode(station)
+			return
+		if self._manager.is_favorite(station):
+			# Translators: Spoken when the currently playing station is already saved in favourites; %s is the station name.
+			ui.message(_("Already in favourites: %s") % station.get("name", "").strip())
+			return
+		self._manager.add_favorite(station)
+		# Translators: Spoken after successfully adding the currently playing station to favourites; %s is the station name.
+		ui.message(_("Added to favourites: %s") % station.get("name", "").strip())
+		self._rebuild_station_scripts()
+
+	def _download_current_getem_book(self, station):
+		"""Downloads every part of the GETEM audio book currently playing
+		into its own folder under the recordings directory - the
+		audiobook branch of script_addToFavorites() above. The book
+		object (with its already-resolved chapter list) lives on the
+		dialog, not here, so this just hands off to it; the dialog
+		instance persists (Hide(), not Destroy()) for as long as
+		something it started is still playing, so it's expected to exist
+		whenever this is reachable."""
+		detail_url = station.get("getem_detail_url")
+		if not detail_url or not self._dialog:
+			# Translators: Spoken when this shortcut is pressed to download an audio book but no audio book (GETEM/Gutenberg/LibriVox) is currently playing.
+			ui.message(_("No audio book is playing"))
+			return
+		try:
+			self._dialog.download_getem_book_by_detail_url(detail_url)
+		except Exception:
+			log.error("freeAudio: could not start audio book download", exc_info=True)
+			# Translators: Spoken when downloading the currently playing audio book fails.
+			ui.message(_("Could not download this audio book."))
+
+
+	def _sync_dialog_device(self, device_index):
+		"""Update the device Choice in the browser dialog when changed from the settings panel."""
+		if self._dialog and self._dialog.IsShown() and hasattr(self._dialog, "_device_choice"):
+			try:
+				devices = self._dialog._dialog_audio_devices
+				for i, (idx, _name) in enumerate(devices):
+					if idx == device_index:
+						self._dialog._device_choice.SetSelection(i)
+						break
+			except Exception:
+				pass
+
+
+	def _on_podcast_progress_saved(self, url):
+		"""Called (possibly from a background thread - e.g. from
+		radioPlayer's stall/finish detection) right after a podcast's
+		position is saved due to a pause or the episode finishing, NOT the
+		periodic autosave. Marshals onto the UI thread and asks the dialog,
+		if open, to refresh just that one episode row - deliberately not a
+		continuously-ticking update, which used to make NVDA re-announce
+		the focused row every second while a podcast was playing."""
+		wx.CallAfter(self._on_podcast_progress_saved_ui, url)
+
+	def _on_podcast_progress_saved_ui(self, url):
+		if self._dialog and self._dialog.IsShown():
+			try:
+				self._dialog.refresh_episode_progress(url)
+			except Exception:
+				pass
+			try:
+				self._dialog.refresh_jukebox_track_progress(url)
+			except Exception:
+				pass
+
+	def _on_podcast_finished(self, station):
+		"""Called (possibly from a background thread - e.g. from
+		radioPlayer's stall/finish detection) only when a podcast/GETEM item
+		actually reaches its end, never on a plain pause - see
+		radioPlayer.RadioPlayer.on_podcast_finished. Marshals onto the UI
+		thread and asks the dialog, if open, to react (currently: auto-
+		advance to the next GETEM chapter)."""
+		wx.CallAfter(self._on_podcast_finished_ui, station)
+
+	def _on_podcast_finished_ui(self, station):
+		if self._dialog and self._dialog.IsShown():
+			try:
+				self._dialog._on_playback_finished(station)
+			except Exception:
+				pass
+		else:
+			# The dialog isn't open to react (e.g. auto-advance a GETEM
+			# audio book, or a jukebox folder, to its next
+			# part/track) - but playback should keep moving forward on its
+			# own regardless of whether the freeAudio window happens to be
+			# open, the same way a podcast's resume position keeps saving
+			# in the background. Do the advance ourselves, independent of
+			# any dialog UI.
+			try:
+				self._advance_getem_chapter_headless(station)
+			except Exception:
+				pass
+			try:
+				self._advance_jukebox_folder_headless(station)
+			except Exception:
+				pass
+
+	def _on_player_notice(self, code):
+		"""Called (possibly from a background thread) with a notice code from
+		the playback engine - see radioPlayer.RadioPlayer.on_notice."""
+		wx.CallAfter(self._on_player_notice_ui, code)
+
+	def _on_player_notice_ui(self, code):
+		if code == "abc_hls_repack":
+			# Translators: Spoken once when a radio station (currently ABC Australia stations) is played through a special playback mode, because it would otherwise stutter.
+			_notify(_("This station uses a special playback mode to prevent stuttering."))
+
+	def _on_play_failed(self, station, url, reason):
+		"""Called (possibly from a background thread - the launch thread
+		in radioPlayer.RadioPlayer._bg_launch) when a station's BASS
+		connection attempt fails outright - see
+		radioPlayer.RadioPlayer.on_play_failed's docstring. Marshals onto
+		the UI thread and lets the person know playback never actually
+		started, instead of the previous silence (station shown as
+		"playing" with no audio and no explanation, rewind just reporting
+		the generic "not available for the current playback backend")."""
+		wx.CallAfter(self._on_play_failed_ui, station, url, reason)
+
+	def _on_play_failed_ui(self, station, url, reason):
+		name = (station or {}).get("name", "").strip() or url
+		# Translators: Spoken when a station's connection attempt fails outright, so the user isn't left thinking it's silently playing; %(name)s is the station name, %(reason)s is a short failure description.
+		ui.message(_("Could not play %(name)s: %(reason)s") % {
+			"name": name, "reason": reason,
+		})
+
+
+	def _open_dialog(self, focus=None):
+		"""Show the station browser dialog, optionally switching to a specific tab.
+
+		focus — controls which tab/widget receives focus after the dialog is shown:
+		  None          : no tab switch; focus stays wherever the dialog left it.
+		  "favorites"   : switch to the Favourites tab (index 1).
+		  "search"      : switch to the All Stations tab and focus the search box.
+		  "podcasts"    : switch to the Podcasts tab and focus the subscription
+		                  list - or, if the Podcasts module is disabled (see
+		                  "enabled_modules" in settingsPanel.py), announce that
+		                  instead, since there's no tab to switch to.
+		  "audiobooks"  : same, for the Audio Books tab/library list.
+		  "jukebox"     : same, for the Jukebox tab.
+		  0..4 (int)    : switch to the tab at that fixed index - always
+		                  0=All Stations, 1=Favourites, 2=Recording,
+		                  3=Timer, 4=Liked Songs regardless of which
+		                  modules are enabled.
+
+		Podcasts/Audio Books/Jukebox have no fixed integer index - whichever
+		of them are enabled are appended after index 4 in that order, so
+		their actual position shifts depending on "enabled_modules". Use
+		the string form above for those three, not a hardcoded int.
+
+		All tab switching is done here — after Show() and Raise() — so that the
+		notebook HWND is guaranteed to be fully realized before SetSelection is
+		called.  This avoids the wxAssertionError / SystemError that fires when
+		SetSelection is called on a notebook whose Win32 tab-control item count
+		is still out of sync with wxNotebook's internal page list.
+
+		If a dialog instance exists but its underlying wx object is no longer
+		valid (bool(wx_object) is False when the C++ peer has been destroyed) or
+		its notebook has become corrupted, it is destroyed and rebuilt from scratch.
+		"""
+		if self._dialog is not None:
+			notebook_ok = False
+			try:
+				notebook_ok = bool(self._dialog) and self._dialog._notebook.GetPageCount() > 0
+			except Exception:
+				pass
+			if not notebook_ok:
+				try:
+					self._dialog.Bind(wx.EVT_CLOSE, None)
+					self._dialog.Destroy()
+				except Exception:
+					pass
+				# The corrupt dialog already called postPopup() when it was hidden,
+				# but if it was never properly shown the prePopup() call that
+				# accompanied its creation is still unbalanced.  Call postPopup()
+				# here to restore the counter before we create a fresh dialog below.
+				try:
+					gui.mainFrame.postPopup()
+				except Exception:
+					pass
+				self._dialog = None
+
+		if self._dialog is None:
+			from .radioDialog import RadioDialog
+			self._dialog = RadioDialog(
+				gui.mainFrame,
+				self._manager,
+				self._player,
+				self._on_station_selected,
+				recorder=self._recorder,
+				timer_manager=self._timer_manager,
+				plugin=self,
+			)
+		if not self._dialog.IsShown():
+			# prePopup() balances the postPopup() that radioDialog calls on
+			# every Hide(). Called exactly once per Show(), never at
+			# construction time - the very first Show() below needs it just
+			# as much as every later re-show does.
+			gui.mainFrame.prePopup()
+			self._dialog.Show()
+		elif self._dialog.IsIconized():
+			# The dialog is only ever Hide()'n on close (see
+			# RadioDialog._on_window_close()/_on_close_btn()), never
+			# Destroy()'d - so IsShown() stays True if the user minimized it
+			# instead of closing it (taskbar, Win+Down, switching away),
+			# which skips the Show() branch above. Raise() alone does not
+			# restore a minimized window on Windows, so without this the
+			# dialog would silently stay in the taskbar - the window
+			# "won't open" until NVDA is restarted and self._dialog resets
+			# to None, forcing a fresh Show().
+			self._dialog.Iconize(False)
+		self._dialog.Raise()
+		try:
+			self._dialog.refresh_audio_devices(force=True)
+		except Exception:
+			pass
+		# Pick up audio books added to / removed from the libraries since
+		# the shortcuts were last built.
+		try:
+			self._rebuild_audiobook_scripts()
+		except Exception:
+			log.debug("freeAudio: audio book script rebuild failed", exc_info=True)
+		# A GETEM audio book may have kept auto-advancing chapters in the
+		# background while this dialog was closed/hidden (see
+		# _advance_getem_chapter_headless()) - resync its "now playing"
+		# state from the player so F3/F4 book/chapter navigation and the
+		# library list's "now playing" indicator reflect the actual
+		# current chapter rather than whatever was showing when the
+		# dialog was last open. The libraries themselves need reloading
+		# from disk first, for the same reason - see
+		# RadioDialog.refresh_getem_libraries_from_disk()'s docstring:
+		# without this, _play_getem_book() could resume a book from an
+		# earlier part than the one it actually auto-advanced to while
+		# hidden (last_chapter_index goes stale, since the background
+		# auto-advance persists through its own separate library object
+		# instead of this dialog's).
+		if self._dialog._tab_pos("audiobooks") is not None:
+			try:
+				self._dialog.refresh_getem_libraries_from_disk()
+				self._dialog._refresh_getem_library_list()
+			except Exception:
+				pass
+			try:
+				self._dialog._sync_getem_now_playing_from_player()
+			except Exception:
+				pass
+
+		# Apply the requested tab/focus after yielding to the event loop once
+		# (wx.CallLater with 0 ms).  This gives wx time to render Show()/Raise()
+		# before SetSelection runs — eliminating the lag on Recording/Timer tabs —
+		# and also ensures the notebook HWND is fully realized on first creation,
+		# which fixes the wrong-tab-on-first-open bug (IsShown() is still False
+		# at this point when the dialog was just constructed).
+		if focus is None:
+			return
+		def _apply_focus():
+			if not self._dialog:
+				return
+			try:
+				if focus == "favorites":
+					self._dialog.focus_favorites()
+				elif focus == "search":
+					self._dialog.focus_search()
+				elif focus == "podcasts":
+					self._dialog.focus_podcasts()
+				elif focus == "audiobooks":
+					self._dialog.focus_audiobooks()
+				elif focus == "jukebox":
+					self._dialog.focus_jukebox()
+				elif isinstance(focus, int):
+					self._dialog.focus_tab(focus)
+			except Exception:
+				pass
+		wx.CallLater(0, _apply_focus)
+
+	def _open_dialog_on_favorites(self):
+		"""Open the dialog and switch to the Favourites tab."""
+		self._open_dialog(focus="favorites")
+
+	def _open_dialog_on_search(self):
+		"""Open the dialog and switch to the All Stations tab / search box."""
+		self._open_dialog(focus="search")
+
+	def _open_dialog_on_podcasts(self):
+		"""Open the dialog and switch to the Podcasts tab, focused on the subscription list."""
+		self._open_dialog(focus="podcasts")
+
+	def _open_dialog_on_audiobooks(self):
+		"""Open the dialog and switch to the Audio Books tab, focused on the library list."""
+		self._open_dialog(focus="audiobooks")
+
+	def _open_dialog_on_jukebox(self):
+		"""Open the dialog and switch to the Jukebox tab, focused on the search box."""
+		self._open_dialog(focus="jukebox")
+
+	def _open_dialog_on_tab(self, tab_index):
+		"""Open the dialog and switch to the given tab.
+		Indices: 0=All Stations, 1=Favourites, 2=Recording, 3=Timer, 4=Liked Songs, 5=Podcasts, 6=Audio Books, 7=Jukebox.
+		"""
+		self._open_dialog(focus=tab_index)
+
+
+	def _check_for_updates(self, silent=False):
+		"""Fetch the latest release from GitHub and prompt the user if a newer version is available.
+		silent=True: only notify when an update is found (used on startup).
+		silent=False: always report the result (used when triggered manually from menu)."""
+		import json
+		import urllib.request
+		import urllib.error
+		import webbrowser
+
+		API_URL = "https://api.github.com/repos/Surveyor123/freeAudio/releases/latest"
+
+		# Retrieve the currently installed addon version via addonHandler
+		current_version = None
+		try:
+			for addon in addonHandler.getAvailableAddons():
+				if addon.manifest.get("name") == "freeAudio":
+					current_version = addon.manifest.get("version", "")
+					break
+		except Exception:
+			pass
+
+		# Fetch latest release metadata from GitHub
+		try:
+			req = urllib.request.Request(
+				API_URL,
+				headers={"User-Agent": "freeAudio-nvda-addon"},
+			)
+			with urllib.request.urlopen(req, timeout=10) as resp:
+				data = json.loads(resp.read().decode("utf-8"))
+		except urllib.error.HTTPError as e:
+			if e.code == 404:
+				# No releases published on GitHub yet
+				log.warning("freeAudio: No releases found on GitHub.")
+				if not silent:
+					# Translators: Spoken during a manual update check when the GitHub repository has no published releases yet.
+					wx.CallAfter(ui.message, _("No releases found on GitHub yet."))
+			else:
+				log.warning(f"freeAudio: Update check HTTP error: {e.code}")
+				if not silent:
+					# Translators: Spoken during a manual update check when the GitHub API request itself returns an HTTP error; %d is the HTTP status code.
+					wx.CallAfter(ui.message, _("Update check failed (HTTP %d).") % e.code)
+			return
+		except Exception as e:
+			log.warning(f"freeAudio: Update check failed: {e}")
+			if not silent:
+				# Translators: Spoken during a manual update check when the request to GitHub fails outright (e.g. no internet connection).
+				wx.CallAfter(ui.message, _("Update check failed. Please check your internet connection."))
+			return
+
+		latest_tag = data.get("tag_name", "").lstrip("v")
+		release_url = data.get("html_url", "https://github.com/Surveyor123/freeAudio/releases/latest")
+
+		# Find the .nvda-addon asset download URL if available
+		download_url = release_url
+		for asset in data.get("assets", []):
+			if asset.get("name", "").endswith(".nvda-addon"):
+				download_url = asset.get("browser_download_url", release_url)
+				break
+
+		if not latest_tag:
+			if not silent:
+				# Translators: Spoken during a manual update check when GitHub's release data doesn't include a usable version tag.
+				wx.CallAfter(ui.message, _("Could not determine latest version."))
+			return
+
+		# Compare versions as tuples of integers for reliable ordering
+		def _parse(v):
+			try:
+				return tuple(int(x) for x in v.split("."))
+			except Exception:
+				return (0,)
+
+		is_newer = _parse(latest_tag) > _parse(current_version or "0")
+
+		if is_newer:
+			def _prompt():
+				# Decide button labels based on whether a direct .nvda-addon asset exists
+				direct_install = download_url != release_url
+				if direct_install:
+					msg = _(
+						# Translators: Update dialog message when direct install is available. %(new)s=new version, %(current)s=current version
+						"A new version of freeAudio is available: %(new)s.\n"
+						"You have version %(current)s.\n\n"
+						"Would you like to download and install it now?"
+					) % {"new": latest_tag, "current": current_version or _("unknown")}
+					# Translators: Button label on the update-available dialog when a direct .nvda-addon download is available, offering to install it right away.
+					yes_label = _("&Install")
+				else:
+					msg = _(
+						# Translators: Update dialog message when only a download page is available. %(new)s=new version, %(current)s=current version
+						"A new version of freeAudio is available: %(new)s.\n"
+						"You have version %(current)s.\n\n"
+						"Would you like to open the download page?"
+					) % {"new": latest_tag, "current": current_version or _("unknown")}
+					# Translators: Button label on the update-available dialog when only a release web page (no direct download) is available, offering to open it in a browser.
+					yes_label = _("&Open Page")
+
+				dlg = wx.MessageDialog(
+					gui.mainFrame,
+					msg,
+					# Translators: Title of the dialog shown when a newer freeAudio version is available.
+					_("freeAudio Update Available"),
+					wx.YES_NO | wx.YES_DEFAULT | wx.ICON_INFORMATION,
+				)
+				# Translators: 'Cancel' button label on the update-available dialog, paired with whichever install/open-page label is used as the other button.
+				dlg.SetYesNoLabels(yes_label, _("&Cancel"))
+				if dlg.ShowModal() == wx.ID_YES:
+					if direct_install:
+						# Download the .nvda-addon and hand it to NVDA for installation
+						threading.Thread(
+							target=_do_install,
+							args=(download_url, latest_tag),
+							daemon=True,
+						).start()
+					else:
+						webbrowser.open(release_url)
+				dlg.Destroy()
+
+			def _do_install(url, version):
+				import tempfile
+				# Translators: Spoken while the new version is being downloaded for direct install; %s is the version number being downloaded.
+				wx.CallAfter(ui.message, _("Downloading freeAudio %s…") % version)
+				try:
+					req = urllib.request.Request(
+						url,
+						headers={"User-Agent": "freeAudio-nvda-addon"},
+					)
+					with urllib.request.urlopen(req, timeout=60) as resp:
+						data_bytes = resp.read()
+					tmp_path = os.path.join(
+						tempfile.gettempdir(),
+						"freeAudio-%s.nvda-addon" % version,
+					)
+					with open(tmp_path, "wb") as fh:
+						fh.write(data_bytes)
+				except Exception as e:
+					log.error("freeAudio: Download failed: %s", e)
+					wx.CallAfter(
+						ui.message,
+						# Translators: Spoken when downloading the new-version installer file fails; %s is the underlying error message.
+						_("Download failed: %s") % str(e),
+					)
+					return
+				# os.startfile triggers NVDA's built-in addon installer for .nvda-addon files
+				try:
+					os.startfile(tmp_path)
+				except Exception as e:
+					log.error("freeAudio: Could not launch installer: %s", e)
+					wx.CallAfter(
+						ui.message,
+						# Translators: Spoken when the downloaded .nvda-addon file can't be handed to NVDA's installer automatically; %s is the path where the file was saved so the user can open it manually.
+						_("Could not launch installer. File saved to: %s") % tmp_path,
+					)
+
+			wx.CallAfter(_prompt)
+		else:
+			if not silent:
+				def _up_to_date():
+					dlg = wx.MessageDialog(
+						gui.mainFrame,
+						# Translators: Message and title of the dialog shown after a manual update check finds no newer version; %s is the currently installed version, or the fallback 'unknown' label just below if it could not be determined.
+						_("freeAudio is up to date. Installed: %s") % (current_version or _("unknown")),
+						_("freeAudio Update Check"),
+						wx.OK | wx.ICON_INFORMATION,
+					)
+					dlg.ShowModal()
+					dlg.Destroy()
+				wx.CallAfter(_up_to_date)
+
+	def _check_internet(self, timeout=3):
+		"""Internet connectivity check - all targets tested in parallel.
+		Returns True as soon as any host responds; waits at most `timeout` seconds.
+		Falls back to HTTP requests only if all socket probes fail.
+		"""
+		import socket
+		import urllib.request
+
+		test_hosts = [
+			("8.8.8.8", 53),         # Google DNS
+			("1.1.1.1", 53),         # Cloudflare DNS
+			("208.67.222.222", 53),  # OpenDNS
+		]
+
+		success = threading.Event()
+
+		def _probe(host, port):
+			try:
+				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				s.settimeout(timeout)
+				s.connect((host, port))
+				s.close()
+				success.set()
+			except Exception:
+				pass
+
+		for host, port in test_hosts:
+			threading.Thread(target=_probe, args=(host, port), daemon=True).start()
+
+		# Return immediately when the first probe succeeds; give up after timeout.
+		if success.wait(timeout=timeout):
+			return True
+
+		# Last resort: Try HTTP request (to Radio Browser API)
+		try:
+			req = urllib.request.Request(
+				"https://de1.api.radio-browser.info/json/stats",
+				headers={"User-Agent": "freeAudio/1.0"}
+			)
+			with urllib.request.urlopen(req, timeout=timeout) as resp:
+				return resp.status == 200
+		except Exception:
+			pass
+
+		# Try a real HTTPS site as a last resort. The previous target
+		# (http://neverssl.com/online) was plain HTTP to a third party,
+		# which can be transparently redirected or MITM'd on a hostile
+		# network - so a "no connectivity" state could be masked, or a
+		# "connectivity" state faked. Google's generate_204 endpoint
+		# answers 204 No Content over HTTPS with no body and no redirect,
+		# which is the standard connectivity-probe shape.
+		try:
+			req = urllib.request.Request(
+				"https://www.google.com/generate_204",
+				headers={"User-Agent": "freeAudio/1.0"}
+			)
+			with urllib.request.urlopen(req, timeout=timeout) as resp:
+				return resp.status in (200, 204)
+		except Exception:
+			return False

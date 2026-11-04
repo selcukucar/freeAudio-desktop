@@ -1,0 +1,1055 @@
+# freeAudio — NVDA Add-on
+
+freeAudio est une extension complète pour le lecteur d'écran NVDA, comprenant radio Internet, podcasts et livres audio. Ce qui a commencé comme un simple moyen d'écouter des stations de radio Internet en streaming est devenu une plateforme d'écoute complète et entièrement accessible : chaque écran, dialogue et commande est conçu dès le départ pour une utilisation au clavier et avec un lecteur d'écran, sans qu'une souris soit nécessaire à aucun moment.
+
+## Ce Que freeAudio Peut Faire
+
+- **Radio Internet** — Parcourez et recherchez plus de 50 000 stations à partir de l'annuaire [Radio Browser](https://www.radio-browser.info/), Résultats complétés par TuneIn et iHeartRadio. Enregistrez vos favoris, réorganisez-les et accédez-y directement grâce à un raccourci clavier global depuis n'importe où dans Windows — consultez les sections [L'Annuaire de Radio Browser](#radio-browser-directory) et [Favoris](#favourites).
+- **Podcasts** — Abonnez-vous à un flux RSS/Atom ou parcourez l'annuaire de podcasts d'Apple et écoutez des extraits avant de vous abonner. La position de lecture est enregistrée automatiquement et reprend là où vous vous étiez arrêté — consultez la section [Podcasts](#podcasts).
+- **Livres audio** — Recherchez, lisez en streaming ou téléchargez des livres à partir des trois sources: [GETEM](https://getem.boun.edu.tr/), la bibliothèque numérique de l'Université Boğaziçi pour les personnes malvoyantes; [LibriVox](https://librivox.org/), le projet de livres audio du domaine public lus par des bénévoles; et la collection de livres audio ouverts du Projet Gutenberg. LibriVox et le Projet Gutenberg ne nécessitent pas de compte. Les œuvres en plusieurs parties reprennent automatiquement là où vous les avez laissées — consultez la section [Livres audio (GETEM, LibriVox et le Projet Gutenberg)](#audio-books-getem-librivox-and-project-gutenberg).
+- **Jukebox Local** — Recherchez des fichiers audio stockés sur n'importe quel disque connecté par leur nom, ou créez une bibliothèque personnelle de fichiers et de dossiers, et écoutez-les avec les mêmes outils de reprise, de recherche, de vitesse et de tonalité que les podcasts et les livres audio utilisent — consultez la section [Jukebox Local](#local-jukebox).
+- **Signets** — Placez un signet à l'endroit où vous vous trouvez dans un livre audio, un épisode de podcast ou un morceau du jukebox, puis reprenez la lecture plus tard. Un signet peut contenir une note textuelle ou vocale qui sera lue lorsque la lecture l'atteindra. Vous pouvez utiliser deux signets pour répéter la section qui les sépare — consultez la section [Signets](#bookmarks).
+- **Enregistrement** — Enregistrez instantanément ce qui est diffusé, enregistrez un seul morceau du début à la fin, enregistrez chaque morceau d'une station dans son propre fichier jusqu'à ce que vous arrêtiez, ou planifiez des enregistrements ponctuels ou récurrents — le tout sans interrompre la lecture — consultez la section [Enregistrement](#recording).
+- **Décalage temporel (retour en arrière sur la radio en direct)** — Mettez en pause et revenez en arrière sur une chaîne en direct comme avec un enregistreur numérique, puis reprenez le direct quand vous le souhaitez — consultez la section [Décalage temporel (retour en arrière sur la radio en direct)](#time-shift-rewind-live-radio).
+- **Reconnaissance musicale et morceaux aimés** — Identifiez les morceaux sans métadonnées à l'aide de Shazam basée sur la reconnaissance, enregistrez les morceaux aimés dans un fichier texte et consultez leurs paroles — consultez les sections [Reconnaissance Musicale](#music-recognition) et [Morceaux aimés](#liked-songs).
+- **Profils audio et effets** — Enregistrez des réglages distincts de volume, d'effets, d'égalisation et de vitesse de lecture par station, par podcast, par livre audio ou par morceau du jukebox, et appliquez des effets en temps réel (Chœur, Réverbération, EQ boosts, et plus encore) à travers du BASS backend — consultez la section [Profil Audio de la Station](#station-audio-profile).
+- **Transposition (changement de la hauteur)** — Modifiez la hauteur des podcasts, des livres audio et des morceaux du jukebox vers le haut ou vers le bas sans changer leur vitesse, en utilisant le composant `bass_fx` intégré — consultez la section [Transposition (Changement de la Hauteur)](#transpose-pitch-shift).
+- **Miroir audio** — Diffuser le même flux audio simultanément vers deux périphériques de sortie, tels que des haut-parleurs et écouteurs — consultez la section [Miroir Audio](#audio-mirror).
+- **Mode Obligato (musique de fond)** — Diffuser discrètement une station favorite en arrière-plan, sur son propre périphérique de sortie et à son propre volume, quel que soit le média principal diffusé (ou non) — consultez la section [Mode Obligato](#obligato-mode).
+- **Minuteries** — Planifiez le démarrage d'une station favorite ou l'arrêt de la lecture à une heure précise — consultez la section [Minuterie](#timer).
+- **Accès au clavier étendu et au braille** — Toutes les fonctionnalités sont accessibles entièrement au clavier, grâce à des raccourcis globaux fonctionnant partout sous Windows (y compris `Ctrl+Win+F3` / `Ctrl+Win+F4` pour passer d'une station, d'un épisode, d'un livre ou d'une piste à l'autre sans ouvrir la fenêtre), des touches de raccourci directes pour les stations favorites individuelles, les entrées du jukebox et les livres audio, et une sortie braille optionnelle pour toutes les notifications vocales de freeAudio.
+
+## L'Annuaire de Radio Browser
+
+freeAudio utilise la base de données ouverte de [Radio Browser](https://www.radio-browser.info/) pour son catalogue de stations. Radio Browser est un annuaire gratuit et géré par la communauté hébergeant plus de 50 000 stations de radio Internet du monde entier. Aucune inscription ni compte n'est requis et son API est ouverte à tous. Chaque station comprend des informations sur l'adresse, le pays, le genre, la langue et le bitrate ; les stations sont classées par votes des utilisateurs. freeAudio se connecte à cette API via des serveurs miroir situés en Allemagne, aux Pays-Bas et en Autriche ; si un serveur est inaccessible, il passe automatiquement au suivant.
+
+Pour que le navigateur reste réactif et évite d'utiliser l'API à chaque recherche ou changement de pays, freeAudio conserve un cache local du catalogue des stations sur le disque. Ce cache est actualisé automatiquement en arrière-plan selon une planification périodique, de sorte que la liste que vous voyez est normalement déjà à jour sans aucune action de votre part. Vous pouvez également forcer une resynchronisation immédiate à tout moment avec le bouton **Mettre à jour la liste des stations** — consultez la section [Navigateur de Stations](#station-browser) ci-dessous.
+
+## Ajout d'une station à Radio Browser
+
+Si une station que vous recherchez ne figure pas dans l'annuaire de Radio Browser, vous pouvez la soumettre vous-même à [https://www.radio-browser.info/add](https://www.radio-browser.info/add). Aucun compte ou inscription n'est nécessaire.
+
+Remplissez le formulaire sur cette page :
+
+- **Stream URL** *(requis)* — l'URL directe du flux audio, se terminant par `.mp3`, `.aac`, `.ogg` ou similaire. Il ne s'agit pas de l'adresse du site Web de la station ; c'est l'adresse du flux brut que vous colleriez dans un lecteur multimédia. La plupart des stations publient l'URL de leur flux sur leur site Web ou dans leur section "Écouter en direct".
+- **Station name** *(requis)* — le nom de la station tel qu'il doit apparaître dans l'annuaire.
+- **Homepage** — l'adresse du site Internet de la station.
+- **Country and language** — sélectionnez le pays et la langue de diffusion dans les listes déroulantes.
+- **Tags** — des mots-clés séparés par des virgules, pour  le genre ou topic par exemple `news`, `jazz`, `classical`. Ceux-ci sont utilisés pour la recherche et le filtrage.
+- **Logo URL** — un lien direct vers l'image du logo de la station, si disponible.
+
+Après soumission, la station est revue et ajoutée à l'annuaire public. Une fois accepté, il apparaîtra dans la recherche de freeAudio et les listes de pays automatiquement, puisque l'annuaire est actualisé à partir de l'API en direct.
+
+## Exigences
+
+- NVDA 2025.1 ou version ultérieure
+- Windows 10 ou version ultérieure
+- Connexion Internet
+
+## Installation
+
+Téléchargez le fichier `.nvda-addon`, appuyez dessus sur Entrée et redémarrez NVDA lorsque vous y êtes invité.
+
+## Raccourcis clavier
+
+Tous les raccourcis peuvent être réassignés depuis le Menu NVDA → Préférences → Gestes de commandes → freeAudio. Ces raccourcis fonctionnent de n'importe où, quelle que soit la fenêtre ayant le focus.
+
+Certains de ces raccourcis sont identiques à ceux utilisés par Windows lui-même. Si vous préférez conserver le raccourci Windows sans réassigner celui de freeAudio, appuyez sur `NVDA+F2` (Passer la touche suivante directement à l'application) juste avant la combinaison de touches — NVDA enverra cette combinaison de touches directement à Windows au lieu de l'intercepter pour freeAudio.
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `Ctrl+Win+R` | Ouvrir le navigateur de stations | Ouvre la fenêtre du navigateur si elle est fermée, ou la met au premier plan si elle est déjà ouverte. |
+| `Ctrl+Win+O` | Ouvrir l'onglet Podcasts | Ouvre le navigateur de stations (s'il est fermé) ou le met au premier plan, et bascule directement vers l'onglet **Podcasts**. |
+| `Ctrl+Win+L` | Ouvrir l'onglet Livres audio | Ouvre le navigateur de stations (s'il est fermé) ou le met au premier plan, et bascule directement vers l'onglet **Livres audio**. |
+| `Ctrl+Win+U` | Ouvrir l'onglet Jukebox | Ouvre le navigateur de stations (s'il est fermé) ou le met au premier plan, et bascule directement vers l'onglet **Jukebox**, focalisé sur la boîte de recherche d'appareils. |
+| `Ctrl+Win+P` | Mettre en pause / reprendre | Met en pause la station actuelle si elle est en cours de lecture ; reprend en cas de pause. Si rien ne joue, démarre la dernière station ou ouvre la liste des favoris en fonction de votre réglage. En appuyant deux fois de suite, vous accédez directement à un onglet de votre choix. Appuyer trois fois peut déclencher une action distincte en fonction de votre réglage. |
+| `Ctrl+Win+S` | Arrêter | Arrête complètement la station actuelle et réinitialise le lecteur. |
+| `Ctrl+Win+→` | Suivant favori | Passe à la station suivante dans la liste des favoris. Revient  au début et à la fin de la liste. |
+| `Ctrl+Win+←` | Favoris précédent | Passe à la station précédente dans la liste des favoris. Saute à la fin quand on est au début. |
+| `Ctrl+Win+F3` | Élément précédent | La touche du Navigateur de stations `F3`, disponible avec la fenêtre fermée. Ce qu'ils font dépend de ce qui est en cours de lecture: **radio** — station précédente; **podcast** — épisode précédent; **livre audio** — livre précédent; **jukebox** — morceau précédent dans le dossier. Annonce "Déjà au premier …" au début d'une liste. Si aucune lecture n'est en cours, la touche est transmise sans modification. Consultez la section [Passer Les Éléments Avec Le Navigateur De Stations Fermé](#skipping-items-with-the-station-browser-closed). |
+| `Ctrl+Win+F4` | Élément suivant | La touche du Navigateur de stations `F4`, disponible avec la fenêtre fermée: station suivante, épisode de podcast, livre audio ou morceau du jukebox, en fonction de ce qui est en cours de lecture. |
+| `Ctrl+Win+Shift+F3` | Flux précédent / partie / entrée | La touche du Navigateur de stations `Shift+F3`, disponible avec la fenêtre fermée: **radio** — station précédente (identique à `Ctrl+Win+F3`); **podcast** — podcast précédent abonné; **livre audio** — partie précédente du livre; **jukebox** — entrée précédente du jukebox (fichier ou dossier). |
+| `Ctrl+Win+Shift+F4` | Flux suivant / partie / entrée | La touche du Navigateur de stations `Shift+F4`, disponible avec la fenêtre fermée: station suivante, podcast abonné, partie du livre audio ou entrée du jukebox, en fonction de ce qui est en cours de lecture. |
+| `Ctrl+Win+↑` | Augmenter le volume | Augmente le volume de 5 ; maximum 200. |
+| `Ctrl+Win+↓` | Diminuer le volume | Diminue le volume de 5 ; minimum 0. |
+| `Ctrl+Win+V` | Ajouter aux favoris / Télécharger le média | Ajoute la station en cours de lecture à la liste des favoris ou télécharge l'épisode de podcast ou le livre audio en cours de lecture. Annonce si la station est déjà dans la liste ou si le média avait déjà été téléchargé. Non applicable lorsqu'un morceau du jukebox est en cours de lecture: freeAudio vous indique que ce raccourci est uniquement valable pour les stations, les podcasts ou les livres audio. |
+| `Ctrl+Win+Shift+K` | Augmenter la vitesse de lecture | Augmente la vitesse de lecture d'un épisode de podcast, d'un livre audio ou d'un morceau du jukebox de 0.1x (préservation de la hauteur). Gamme: 0.5x à 2.0x. |
+| `Ctrl+Win+Shift+J` | Diminuer la vitesse de lecture | Diminue la vitesse de lecture d'un épisode de podcast, d'un livre audio ou d'un morceau du jukebox de 0.1x. |
+| `Shift+Win+K` | Transposition vers le haut | Augmente la hauteur d'un épisode de podcast, d'un livre audio ou d'un morceau du jukebox par pas de 1/8 de ton entier (0.25 demi-ton), sans changer sa vitesse. Gamme: −12.00 à +12.00 demi-tons. Consultez la section [Transposition (Changement de la Hauteur)](#transpose-pitch-shift). |
+| `Shift+Win+J` | Transposition vers le bas | Diminue la hauteur par pas de 1/8 de ton entier, sans modifier la vitesse. |
+| `Ctrl+Win+F12` | Ajouter un signet | Ajoute un signet à la position de lecture actuelle d'une partie du livre audio, d'un épisode de podcast ou d'un morceau du jukebox. Non disponible pour les stations de radio en direct. Consultez la section [Signets](#bookmarks). |
+| `Ctrl+Win+I` | Informations sur la Station | Annonce le nom de la station en cours de lecture, épisode de podcast, livre audio ou morceau du jukebox. Appuyez deux fois pour afficher des détails tels que le pays, le genre et le bitrate dans un dialogue. Appuyez trois fois pour copier les informations de la piste actuelle (métadonnées ICY) dans le presse-papiers si disponible ; si aucune métadonnée n'est présente, démarre la reconnaissance musicale Shazam à la place. Appuyez quatre fois pour forcer la reconnaissance musicale en cas de métadonnées ICY erronées. Pendant un enregistrement, son nom est également annoncé ; lors d'un enregistrement de chaque morceau , Voici le morceau en cours d'enregistrement. |
+| `Ctrl+Win+M` | Miroir audio | Mettre en miroir le flux actuel ou média vers un périphérique de sortie audio supplémentaire simultanément. Appuyez à nouveau pour arrêter la mise en miroir. |
+| `Ctrl+Win+Shift+M` | Mode Obligato (musique de fond) | Diffuse en boucle une station favorite choisie en arrière-plan, discrètement, sur son propre périphérique de sortie et à son propre volume, quel que soit le média principal diffusé. Lorsque vous appuyez  pour la première fois, une boîte de dialogue s'ouvrira permettant de sélectionner la station, le périphérique de sortie et le volume. Appuyez de nouveau pour l'arrêter. |
+| `Ctrl+Win+E` | Enregistrement (instantané / morceaux / chaque morceau) | Appuyez une fois pour commencer à enregistrer la station actuelle ; appuyez à nouveau pour arrêter. Appuyez **deux fois** pour démarrer un **enregistrement d'un morceau**: le fichier porte le nom de la piste actuelle et l'enregistrement s'arrête automatiquement lorsque la piste change. Appuyez **trois fois** pour enregistrer **chaque morceau** jusqu'à ce que vous l'arrêtiez: chaque morceau est enregistré dans son propre fichier. Appuyez deux fois pendant qu'un enregistrement d'un morceau ou chaque morceau  est actif pour l'arrêter. La lecture continue sans interruption dans tous les modes d'enregistrement. L'enregistrement de morceaux et l'enregistrement de chaque morceau fonctionnent uniquement sur les stations qui envoient les titres des pistes  (métadonnées ICY) dans le flux, et l'enregistrement de chaque morceau ne fonctionne pas sur les stations HLS (`.m3u8`). Consultez la section [Enregistrement](#recording). |
+| `Ctrl+Win+W` | Ouvrir le dossier des enregistrements | Ouvre le dossier contenant les fichiers enregistrés dans l'Explorateur de fichiers. |
+| `Ctrl+Win+J` | Retour en arrière du décalage temporel / podcast, livre audio & jukebox chercher en arrière | Pour la radio en direct: recule de 15 secondes. La première pulsation entre en mode décalage temporel ; chaque pulsation supplémentaire recule de 15 secondes de plus, jusqu'à la limite de la mémoire tampon défini dans les paramètres de freeAudio. Nécessite que la mémoire tampon de décalage temporel soit activée dans les Paramètres. Pour un podcast, un livre audio ou un morceau du jukebox, cette touche permet de naviguer dans le fichier, et la durée de la recherche dépend de la pulsation exercée : **maintenir la touche enfoncée** permet de revenir en arrière de 5 secondes par répétition, comme auparavant ; **une simple pulsation** permet de revenir en arrière de 12 secondes ; **deux pulsations rapides** permettent de revenir en arrière d'une minute ; **trois pulsations ou plus** permettent de revenir en arrière de 5 minutes. Une seule recherche est effectuée par séquence de pulsations, la durée correspondant au nombre de pulsations effectuées (les pulsations ne s'additionnent pas). Fonctionne quel que soit le réglage du décalage temporel. |
+| `Ctrl+Win+K` | Avance rapide du décalage temporel / podcast, livre audio & jukebox chercher en avant | Pour la radio en direct: avance de 15 secondes en mode décalage temporel. Une fois le bord du direct atteint, la lecture revient automatiquement au direct et cette commande est sans effet jusqu'au prochain retour en arrière. Pour un podcast, un livre audio ou un morceau du jukebox, cette touche permet de faire défiler le fichier en utilisant la même échelle de pulsation/maintien que `Ctrl+Win+J` ci-dessus (maintien = 5 secondes par répétition ; 1 pulsation = 12 secondes ; 2 pulsations = 1 minute ; 3 pulsations ou plus = 5 minutes). Une seule recherche est effectuée par séquence de pulsations, dimensionnée en fonction du nombre de pulsations effectués (les pulsations ne s'additionnent pas). Fonctionne quel que soit le réglage du décalage temporel. |
+| `Ctrl+Win+Alt+J` | Retour pas à pas (1 seconde) | Recule exactement 1 seconde, pour les petites corrections. Dans un podcast, un livre audio ou un morceau du jukebox il effectue une recherche en arrière de 1 seconde dans le fichier; dans la radio en direct il recule de 1 seconde dans la mémoire tampon de décalage temporel (la mémoire tampon de décalage temporel doit être activée, et la première pulsation active le mode de décalage temporel comme `Ctrl+Win+J`). Consultez la section [Recherche Précise (1 Seconde)](#fine-seeking-1-second). |
+| `Ctrl+Win+Alt+K` | Avance pas à pas (1 seconde) | Avance d'exactement 1 seconde. Dans un podcast, un livre audio ou un morceau du jukebox il effectue une recherche en avant de 1 seconde dans le fichier; dans la radio en direct il avance de 1 seconde lors du décalage temporel. Consultez la section [Recherche Précise (1 Seconde)](#fine-seeking-1-second). |
+| `Ctrl+Win+T` | Basculer la mémoire tampon de décalage temporel | Active ou désactive la mémoire tampon de décalage temporel instantanément, reflétant la case à cocher dans les Paramètres. La désactiver renvoie immédiatement au direct si vous étiez en mode décalage et arrête la capture en arrière-plan. Aucun effet sur la lecture de podcasts, de livres audio ou du jukebox. |
+| *(non assigné)* | Sélectionner le périphérique de sortie | Ouvre une liste à la demande des principaux périphériques de sortie disponibles. La liste s'affiche uniquement lorsque le BASS détecte plus d'un périphérique de sortie physique. Assigner une combinaison de touches via NVDA Menu → Préférences → Gestes de commandes → freeAudio. |
+| *(non assigné)* | Activer/désactiver les notifications muettes | Active/désactive le paramètre Muet des notifications à la volée. Assigner une combinaison de touches via NVDA Menu → Préférences → Gestes de commandes → freeAudio. |
+| *(non assigné)* | Lire une station favorite directement | Chaque station de la liste des favoris apparaît comme une entrée distincte dans le Menu NVDA → Préférences → Gestes de commandes → **Stations freeAudio**. Assigner n'importe quel raccourci clavier à une station pour la démarrer instantanément depuis n'importe où, sans ouvrir le navigateur. |
+| *(non assigné)* | Lire une entrée du jukebox directement | Chaque fichier ou dossier de votre liste du Jukebox apparaît comme une entrée distincte dans le Menu NVDA → Préférences → Gestes de commandes → **Jukebox freeAudio**. Consultez la section [Raccourcis Clavier Directs pour les Entrées du Jukebox](#direct-keyboard-shortcuts-for-jukebox-entries). |
+| *(non assigné)* | Lire un livre audio directement | Chaque livre de votre bibliothèque de Livres audio — de GETEM, LibriVox ou le Projet Gutenberg — apparaît comme une entrée distincte dans  le Menu NVDA → Préférences → Gestes de commandes → **Livres audio freeAudio**. Assigner n'importe quel raccourci clavier à un livre pour le reprendre instantanément depuis n'importe où, sans ouvrir le navigateur. Consultez la section [Raccourcis Clavier Directs pour les Livres Audio](#direct-keyboard-shortcuts-for-audio-books). |
+
+`Ctrl+Win+→` / `Ctrl+Win+←` parcourent uniquement la liste des favoris ; ils ne fonctionnent pas avec la liste de toutes les stations — utilisez `Ctrl+Win+F4` / `Ctrl+Win+F3` (voir ci-dessous) pour parcourir la liste à partir de laquelle la station actuelle a été lancée. Quand une liste ayant le focus dans la fenêtre du navigateur, les touches fléchées gauche et droite ont le même objectif — voir la section Raccourcis dans la boîte de dialogue.
+
+### Passer Les Éléments Avec Le Navigateur De Stations Fermé
+
+Dans le Navigateur de stations, `F3`, `F4`, `Shift+F3` et `Shift+F4` ont des fonctions différentes selon l'onglet actif. Les versions globales — `Ctrl+Win+F3`, `Ctrl+Win+F4`, `Ctrl+Win+Shift+F3` et `Ctrl+Win+Shift+F4` — fonctionnent partout sous Windows, que la fenêtre soit ouverte ou non. Sans onglet à consulter, freeAudio se base sur **ce qui est en cours de lecture**:
+
+| En cours de lecture | `Ctrl+Win+F3` / `Ctrl+Win+F4` | `Ctrl+Win+Shift+F3` / `Ctrl+Win+Shift+F4` |
+|---|---|---|
+| Station de radio | Station précédente / suivante dans la liste à partir de laquelle elle a été lancée pour la dernière fois (résultats de Toutes les stations ou Favoris), avec retour au début/à la fin. Si la station n'est pas dans cette liste, la liste des favoris est utilisée. | Identique à sans `Shift`. |
+| Épisode de podcast | Épisode précédent / suivant du même flux. | Podcast abonné précédent / suivant. Comme il n'y a pas de liste pour mettre en évidence un flux, son premier épisode répertorié est lu. |
+| Livre audio | Livre précédent / suivant dans votre bibliothèque, reprenant à la partie que vous avez écoutée en dernier. | Partie précédente / suivante du livre actuel. |
+| Morceau du Jukebox | Morceau précédent / suivant du dossier en cours de lecture. | Entrée précédente / suivante dans la liste du Jukebox; un dossier reprend là où il s'est arrêté la dernière fois. |
+
+Informations importantes:
+
+- Si rien n'est en cours de lecture, la combinaison de touches est transmise à Windows sans modification, de la même manière que `Ctrl+Win+→` / `Ctrl+Win+←`.
+- Aux extrémités d'une liste (sauf pour la radio, qui tourne en boucle), NVDA annonce "Déjà au premier …" ou "Déjà au dernier …" et rien ne change. Un morceau du jukebox qui n'a pas été lancé en tant que partie d'un dossier n'a pas de voisins, elle affiche donc la même chose.
+- **L'avance automatique n'est pas interrompue.** Après avoir navigué dans un dossier du jukebox ou un livre audio, le morceau ou la partie suivante démarre toujours d'elle-même lorsque l'actuelle se termine, avec le Navigateur de stations ouvert ou fermé. Appuyer sur suivant sur le dernier morceau d'un dossier ne réinitialise pas la position enregistrée du dossier.
+- La liste des épisodes d'un podcast est uniquement conservée en mémoire pour la session NVDA en cours. Si elle n'a pas encore été chargée — par exemple juste après le démarrage de NVDA — NVDA vous demande d'ouvrir le Navigateur de stations et de sélectionner ce podcast une fois; après cela, les touches fonctionnent avec la fenêtre fermée.
+- Si le Navigateur de stations est ouvert, un livre audio passé depuis le clavier met également à jour le livre et la partie "maintenant en cours de lecture" de la fenêtre, afin que son propre avancement automatique se poursuive au bon endroit.
+
+Comme chaque commande de freeAudio, celles-ci peuvent être réassignées depuis le Menu NVDA → Préférences → Gestes de commandes → freeAudio.
+
+## Navigateur de Stations
+
+freeAudio ajoute également un sous-menu **freeAudio** au menu Outils NVDA. De là, vous pouvez ouvrir directement le Navigateur de Stations et les Paramètres de freeAudio.
+
+La fenêtre ouverte avec `Ctrl+Win+R` contient huit onglets : Toutes les stations, Favoris, Enregistrement, Minuterie, Morceaux aimés, Podcasts, Livres audio et Jukebox. Vous pouvez naviguer entre les onglets avec `Ctrl+Tab` ou en utilisant `Alt+1` à `Alt+8`. Les onglets Podcasts, Livres audio et Jukebox peuvent être désactivés dans le paramètre **Modules** (consultez la section [Paramètres](#settings)) ; les onglets désactivés ne sont pas affichés.
+
+Lorsque l'onglet Toutes les stations s'ouvre, le top 1 000 des stations les plus votées sont automatiquement chargées à partir de Radio Browser. La sélection d'un pays dans la liste déroulante met à jour la liste pour montrer les stations de ce pays. Taper dans le champ de recherche effectue instantanément une recherche complète dans toute la base de données de Radio Browser simultanément par nom, pays et genre.
+
+Lors de la recherche, les résultats de Radio Browser sont complétés par les stations de TuneIn et iHeartRadio (si disponibles). Ces sources externes sont recherchées en arrière-plan et leurs résultats sont automatiquement fusionnés dans la liste, vous donnant accès à encore plus de stations sans aucune action supplémentaire.
+
+La liste déroulante **Périphérique de sortie** en bas de la fenêtre du navigateur — en dehors des onglets — répertorie tous les périphériques de sortie audio reconnus par BASS. La sélection d'un périphérique redirige immédiatement la sortie audio vers celui-ci et enregistre le choix de manière permanente ; le même périphérique est utilisé automatiquement lors de la session suivante. Si le périphérique sélectionné n'est pas connecté, l'extension revient automatiquement au valeur système par défaut. Appuyez sur `F11` pour ouvrir un sélecteur de périphérique à la demande plus simple depuis n'importe où dans le Navigateur de stations. Le sélecteur ne s'affiche pas automatiquement et s'ouvre uniquement lorsque le BASS détecte plusieurs périphériques de sortie physiques. Lorsqu'un seul est disponible, aucune sélection n'est nécessaire et freeAudio utilise la sortie par défaut du système.
+
+Les contrôles de **Volume** (0–200) et **Effets** dans la même zone peut être ajusté à tout moment lorsque la fenêtre est ouverte. Depuis la liste des Effets, Chœur, Compression, Distorsion, Echo, Flanger, Gargle, Réverbération, EQ: Bass Boost, EQ: Treble Boost et EQ: Vocal Boost peut être activé simultanément ; les modifications sont appliquées instantanément au flux actif. Chaque effet peut également être activé instantanément avec `Ctrl+1` jusqu'à `Ctrl+0` sans quitter le clavier — consultez la section [Raccourcis de l'Effet](#effect-shortcuts).
+
+Lorsqu'un ou plusieurs effets EQ sont activés, un **contrôle de gain** apparaît pour chaque bande active. Le gain peut être réglé entre −15 dB et +15 dB; les valeurs par défaut sont Bass +9 dB, Treble +9 dB, et Vocal +6 dB. Les contrôles de gain sont affichées uniquement pour les bandes EQ  actuellement cochées et sont automatiquement masquées lorsqu'un effet EQ  n'est pas coché. Les valeurs de gain sont enregistrées globalement et restaurées lors de la prochaine session.
+
+Le bouton **Lecture/Pause** est également situé en bas de la fenêtre. Si aucune station n'est en cours de lecture, la station sélectionnée démarre ; si une station est déjà en cours de lecture, la lecture est interrompue.
+
+Le bouton **Mettre à jour la liste des stations** resynchronise immédiatement le catalogue des stations locales à partir de l'API Radio Browser, au lieu d'attendre l'actualisation périodique en arrière-plan. Pendant que l'actualisation est en cours, le bouton est désactivé et NVDA annonce qu'une actualisation est en cours ; si vous appuyez à nouveau dessus avant la fin de l'actualisation en cours, NVDA vous informe qu'une actualisation est déjà en cours. Une fois l'actualisation terminée, NVDA annonce que la liste des stations a été mise à jour et que les résultats de recherche ou la liste des pays actuellement affichés sont automatiquement actualisés pour refléter les nouvelles données.
+
+Lorsqu'une station est sélectionnée dans la liste, le bouton **Détails de la Station** affiche des informations telles que le pays, la langue, le genre, le format, le bitrate, le site web et le flux URL dans une boîte de dialogue séparée. Chaque champ apparaît dans sa propre zone de texte en lecture seule ; vous pouvez vous déplacer entre les champs avec Tab et copier toutes les informations dans le presse-papiers en même temps avec le bouton **Copier tout dans le presse-papier**. Ce bouton est disponible dans les onglets Toutes les stations et Favoris.
+
+### Menu Contextuel de la Station
+
+Cliquez avec le bouton droit sur une station dans la liste  Toutes les stations ou Favoris, ou sélectionnez-la et appuyez sur la touche Applications ou sur `Shift+F10`, pour ouvrir un menu contextuel avec des actions rapides:
+
+- **Détails de la Station** — identique au bouton Détails de la station décrit ci-dessus.
+- **Ajouter aux Favoris** *(onglet Toutes les stations)* / **Supprimer la station** *(onglet Favoris)*.
+- **Renommer la station** *(onglet Favoris)* — identique à `F9`.
+- **Enregistrer le profil audio de cette station** / **Effacer le profil audio** *(onglet Favoris)* — consultez la section [Profil Audio de la Station](#station-audio-profile).
+- **Tester l'URL** — vérifie si le flux de la station sélectionnée est actuellement accessible sans démarrer la lecture et annonce le résultat (accessible ou la raison de l'échec, comme une erreur HTTP ou un délai d'attente du réseau).
+
+Seuls les éléments pertinents pour l'onglet et la sélection actuels sont affichés comme disponibles.
+
+### Raccourcis dans la boîte de dialogue
+
+Les touches suivantes fonctionnent uniquement lorsque la fenêtre Navigateur de Stations est active.
+
+#### Touches F
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `F1` | Guide d'aide | Ouvre le fichier d'aide de l'extension dans le navigateur par défaut. Le guide de la langue de NVDA actif est recherché en premier ; s'il n'est pas trouvé, le guide par défaut est ouvert. |
+| `F2` | Qu'est-ce qui se joue | Annonce la station en cours de lecture et le nom de la piste. Appuyez deux fois pour afficher des détails tels que le pays, le genre et le bitrate dans un dialogue. Appuyez trois fois pour copier les informations de la piste actuelle (métadonnées ICY) dans le presse-papiers si disponible ; si aucune métadonnée n'est présente, démarre la reconnaissance musicale Shazam à la place. Appuyez quatre fois pour forcer la reconnaissance musicale en cas de métadonnées ICY erronées. Pendant l'enregistrement, son nom est également annoncé. |
+| `F3` | Élément précédent | Dans l'onglet Toutes les stations ou Favoris: passe à la station précédente et commence la lecture immédiatement. Dans l'onglet Podcasts: passe à l'épisode précédent dans la liste des épisodes et le lit. Dans l'onglet Livres audio: passe au livre précédent et commence la lecture. Dans l'onglet Jukebox: passe au morceau précédent dans l'élément sélectionné du jukebox et le lit; dans un dossier, les morceaux suivants démarrent automatiquement. L'équivalent global est `Ctrl+Win+F3` — consultez la section [Passer Les Éléments Avec Le Navigateur De Stations Fermé](#skipping-items-with-the-station-browser-closed). |
+| `F4` | Élément suivant | Dans l'onglet Toutes les stations ou Favoris: passe à la station suivante et commence la lecture immédiatement. Dans l'onglet Podcasts: passe à l'épisode suivant et le lit. Dans l'onglet Livres audio: passe au livre suivant et commence la lecture. Dans l'onglet Jukebox: passe au morceau suivant dans l'élément sélectionné du jukebox et le lit; dans un dossier, les morceaux suivants démarrent automatiquement. L'équivalent global est `Ctrl+Win+F4`. |
+| `Shift+F3` | Flux précédent / partie / élément | Dans l'onglet Podcasts: monte d'un flux dans la liste des abonnements. Dans l'onglet Livres audio: passe à la partie précédente du livre en cours de lecture. Dans l'onglet Jukebox: monte d'une entrée dans la liste principale du jukebox (fichier ou dossier). L'équivalent global est `Ctrl+Win+Shift+F3`, qui permet également de lire l'entrée. |
+| `Shift+F4` | Flux suivant / partie / élément | Dans l'onglet Podcasts: descend d'un flux dans la liste des abonnements. Dans l'onglet Livres audio: passe à la partie suivante du livre en cours de lecture. Dans l'onglet Jukebox: descend d'une entrée dans la liste principale du jukebox. L'équivalent global est `Ctrl+Win+Shift+F4`, qui permet également de lire l'entrée. |
+| `F5` | Diminuer le volume | Diminue le volume de 5 (minimum 0). |
+| `F6` | Augmenter le volume | Augmente le volume de 5 (maximum 200). |
+| `F7` | Mettre en pause / reprendre | Met en pause la station actuelle si elle est en cours de lecture ; reprend en cas de pause et le média est chargé. |
+| `F8` | Arrêter | Arrête complètement la station actuelle et réinitialise le lecteur. |
+| `F9` | Renommer | Ouvre la boîte de dialogue  pour renommer la station ayant le focus dans l'onglet Favoris. |
+| `F11` | Sélectionner le périphérique de sortie | Ouvre le sélecteur de périphérique de sortie principal lorsque le BASS détecte plusieurs périphériques de sortie physiques. L'appareil actuel est présélectionné ; Entrée applique et enregistre le choix. |
+| `F12` | Ajouter un signet | Ajoute un signet à la position de lecture actuelle d'une partie du livre audio, d'un épisode de podcast ou d'un morceau du jukebox — l'équivalent dans la fenêtre de `Ctrl+Win+F12`. Consultez la section [Signets](#bookmarks). |
+
+#### Liste et Raccourcis de Navigation
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `→` | Élément suivant / Chercher en avant | Dans une liste de stations (Toutes les stations / Favoris), passe à la station suivante et la joue immédiatement, en revenant  au début et à la fin de la liste. Dans les listes d'éléments Podcasts, Livres audio ou Jukebox (et la liste des signets située en dessous de chacun), pendant le chargement et la lecture d'un élément, effectue une recherche en avant vers l'élément suivant — comme avec la commande globale `Ctrl+Win+K` (consultez la section [Détails de la Lecture du Podcast](#podcast-playback-details) pour savoir comment le fait d'appuyer et de maintenir change le pas). Plus précisément, dans la liste des épisodes de podcasts, si aucun épisode n'est encore chargé, il passe à l'épisode suivant et le joue. |
+| `←` | Élément précédent / Chercher en arrière | Dans une liste de stations, passe à la station précédente et la joue, en sautant à la fin quand on est au début. Dans les listes d'éléments Podcasts, Livres audio ou Jukebox (et la liste des signets située en dessous de chacun), pendant le chargement et la lecture d'un élément, effectue une recherche en arrière vers l'élément précédent — comme avec la commande globale `Ctrl+Win+J`. Dans la liste des épisodes de podcasts, si aucun épisode n'est encore chargé, il passe à l'épisode précédent et le joue. |
+| `Shift+→` | Transposition vers le haut | Dans les listes d'éléments Podcasts, Livres audio ou Jukebox et leurs listes de signets: augmente la hauteur de la lecture en cours d'un pas (0.25 demi-ton), comme la commande globale `Shift+Win+K`. |
+| `Shift+←` | Transposition vers le bas | Dans les listes d'éléments Podcasts, Livres audio ou Jukebox et leurs listes de signets: diminue la hauteur de la lecture en cours d'un pas (0.25 demi-ton), comme la commande globale `Shift+Win+J`. |
+| `Page précédente` | Augmenter la vitesse de lecture | Dans les listes d'éléments Podcasts, Livres audio ou Jukebox et leurs listes de signets: augmente la vitesse de lecture, comme la commande globale `Ctrl+Win+Shift+K`. |
+| `Page suivante` | Diminuer la vitesse de lecture | Dans les listes d'éléments Podcasts, Livres audio ou Jukebox et leurs listes de signets: diminue la vitesse de lecture, comme la commande globale `Ctrl+Win+Shift+J`. |
+| `Alt+→` | Avance rapide précis (1 seconde) | Dans n'importe quel onglet du navigateur de stations, pendant le chargement de quelque chose: avancer d'exactement 1 seconde, comme la commande globale `Ctrl+Win+Alt+K`. Consultez la section [Recherche Précise (1 Seconde)](#fine-seeking-1-second). |
+| `Alt+←` | Retour rapide précis (1 seconde) | Dans n'importe quel onglet du navigateur de stations, pendant le chargement de quelque chose: reculer d'exactement 1 seconde, comme la commande globale `Ctrl+Win+Alt+J`. |
+| `Ctrl+→` | Épisode suivant / livre / morceau | Dans l'onglet Podcasts: passe à l'épisode suivant et le joue. Dans l'onglet Livres audio (liste de la bibliothèque focalisée): passe au livre suivant. Dans l'onglet Jukebox (liste des entrées ou liste des morceaux focalisés): passe au morceau suivant dans l'élément sélectionné du jukebox et le joue. |
+| `Ctrl+←` | Épisode précédent / livre / morceau | Dans l'onglet Podcasts: passe à l'épisode précédent et le joue. Dans l'onglet Livres audio: passe au livre précédent. Dans l'onglet Jukebox: passe au morceau précédent dans l'élément sélectionné du jukebox et le joue. |
+| `Entrée` | Lecture / Ajouter | Dans une liste de stations ou d'épisodes: commence immédiatement la lecture de l'élément sélectionné. Dans les résultats de recherche de l'onglet Jukebox: ajoute le fichier sélectionné au jukebox. Dans la liste des entrées ou des morceaux de l'onglet Jukebox: commence directement la lecture de l'élément focalisé. |
+| `Espace` | Lecture / Pause / Aperçu | Met en pause si quelque chose est en train de jouer ; sinon, commence la lecture de l'élément sélectionné. Dans l'onglet Jukebox, dans les résultats de recherche de l'onglet Jukebox: active/désactive l'aperçu (lecture/arrêter) du fichier sélectionné. Dans la liste des entrées ou des morceaux de l'onglet Jukebox: met en pause la lecture si elle est en cours ; sinon, commence la lecture de l'élément focalisé. |
+| `Ctrl+Tab` | Onglet suivant | Passe à l'onglet suivant (Toutes les stations → Favoris → Enregistrement → Minuterie → Morceaux aimés → Podcasts → Livres audio → Jukebox). |
+| `Ctrl+Shift+Tab` | Onglet précédent | Passe à l'onglet précédent. |
+| `Echap` | Cacher | Cache la fenêtre ; l'extension continue de jouer en arrière-plan. |
+
+#### Raccourcis de Volume
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `Ctrl+↑` | Augmenter le volume | Augmente le volume de 5. Fonctionne uniquement lorsque la fenêtre du navigateur est ouverte. |
+| `Ctrl+↓` | Diminuer le volume | Diminue le volume de 5. Fonctionne uniquement lorsque la fenêtre du navigateur est ouverte. |
+
+#### Raccourcis de l'Effet
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `Ctrl+1` | Activer/désactiver Chœur | Active ou désactive l'effet Chœur et l'applique instantanément au flux actif. |
+| `Ctrl+2` | Activer/désactiver Compression | Active ou désactive l'effet Compression et l'applique instantanément au flux actif. |
+| `Ctrl+3` | Activer/désactiver Distorsion | Active ou désactive l'effet Distorsion et l'applique instantanément au flux actif. |
+| `Ctrl+4` | Activer/désactiver Echo | Active ou désactive l'effet Echo et l'applique instantanément au flux actif. |
+| `Ctrl+5` | Activer/désactiver Flanger | Active ou désactive l'effet Flanger et l'applique instantanément au flux actif. |
+| `Ctrl+6` | Activer/désactiver Gargle | Active ou désactive l'effet Gargle et l'applique instantanément au flux actif. |
+| `Ctrl+7` | Activer/désactiver Réverbération | Active ou désactive l'effet Réverbération et l'applique instantanément au flux actif. |
+| `Ctrl+8` | Activer/désactiver EQ: Bass Boost | Active ou désactive la bande EQ Bass Boost et l'applique instantanément au flux actif. |
+| `Ctrl+9` | Activer/désactiver EQ: Treble Boost | Active ou désactive la bande EQ Treble Boost et l'applique instantanément au flux actif. |
+| `Ctrl+0` | Activer/désactiver EQ: Vocal Boost | Active ou désactive la bande EQ Vocal Boost et l'applique instantanément au flux actif. |
+
+Chaque raccourci reflète cocher ou décocher dans l'entrée correspondante dans la liste **Effets**: NVDA annonce si l'effet a été activé ou désactivé, la modification est enregistrée automatiquement et le contrôle de gain de l'EQ pour cette bande (le cas échéant) apparaît ou disparaît en conséquence.
+
+#### Raccourcis de la Touche Alt
+
+| Raccourci | Fonction | Description |
+|---|---|---|
+| `Alt+R` | Aller au champ de recherche | Déplace le focus sur la zone de texte de recherche. Recherche sur Radio Browser avec le texte dans le champ de recherche ; le nom, le pays et le genre sont recherchés simultanément. |
+| `Alt+V` | Ajouter/supprimer un favori | Ajoute la station sélectionnée aux favoris ; le supprime s'il est déjà dans la liste. |
+| `Alt+1` | Toutes les stations | Passe à l'onglet Toutes les stations. |
+| `Alt+2` | Favoris | Passe à l'onglet Favoris. |
+| `Alt+3` | Enregistrement | Passe à l'onglet Enregistrement. |
+| `Alt+4` | Minuterie | Passe à l'onglet Minuterie. |
+| `Alt+5` | Morceaux aimés | Passe à l'onglet Morceaux aimés. |
+| `Alt+6` | Podcasts | Passe à l'onglet Podcasts. |
+| `Alt+7` | Livres audio | Passe à l'onglet Livres audio. |
+| `Alt+8` | Jukebox | Passe à l'onglet Jukebox, focalisé sur la boîte de recherche d'appareils. |
+| `Alt+K` | Fermer | Ferme la fenêtre ; l'extension continue de jouer en arrière-plan. |
+
+## Favoris
+
+La liste des favoris est une collection de stations personnelles stockée en permanence. Pour ajouter une station, sélectionnez-la dans la liste et appuyez sur le bouton Ajouter aux Favoris ou utilisez le raccourci `Alt+V`. Le même raccourci supprime une station déjà dans la liste lorsqu'elle est sélectionnée.
+
+Les favoris peuvent être lus avec `Ctrl+Win+→` et `Ctrl+Win+←`; ces raccourcis fonctionnent même lorsque la fenêtre du navigateur n'est pas ouverte.
+
+Pour supprimer une station de la liste des favoris, sélectionnez-la et appuyez sur le bouton **Supprimer la station** ou sur la touche `Supprimer`. Après la suppression, le focus et la sélection passent automatiquement à la station suivante dans la liste. Si la station supprimée était la dernière, le focus se déplace sur la station précédente. Si la liste devient vide, le focus se déplace vers le bouton Lecture.
+
+### Marquage et Suppression de Plusieurs Éléments
+
+Dans la liste des Favoris, des Morceaux aimés, de la bibliothèque de Livres audio et de la du Jukebox permettent tous de sélectionner plusieurs éléments et de les supprimer ensemble en une seule étape:
+
+- Appuyez sur le **`.`** (point) sur un élément sélectionné pour le marquer ou le désélectionner. NVDA annonce le changement, et la ligne d'un élément marqué est étiquetée  "(marqué)" son statut reste donc clair pendant que vous parcourez la liste.
+- Appuyez sur **`Shift+Début`** pour marquer ou démarquer chaque élément depuis l'élément actuel jusqu'au premier élément de la liste, ou **`Shift+Fin`** pour faire de même jusqu'au dernier élément. Le fait que la plage soit marquée ou non dépend de l'état de l'élément courant ; ainsi, en une seule action, toute la plage se déplace de la même manière. Le focus se déplace ensuite à l'extrémité de la plage, et NVDA annonce le nombre d'éléments modifiés.
+- Appuyez sur **`Supprimer`** pour supprimer tous les éléments marqués en une seule fois. Si rien n'est marqué, `Supprimer` supprime toujours uniquement l'élément actuellement sélectionné, comme auparavant.
+- Le menu contextuel accessible par clic droit (Touche Applications / `Shift+F10`) de chaque liste comprend une commande **Supprimer la sélection**, activé uniquement lorsqu'au moins un élément est marqué, qui fait la même chose.
+- Avant toute suppression, une simple boîte de dialogue de confirmation récapitule le nombre d'éléments qui vont être supprimés.
+
+Les marques sont associées à une liste et disparaissent une fois les éléments supprimés (ou désélectionnés individuellement) ; elles ne sont pas enregistrées entre les sessions.
+
+Les listes de signets des onglets Podcasts, Livres audio et Jukebox utilisent le même marquage `.`, et les signets marqués sont ceux sur lesquels agissent les commandes **Supprimer la sélection** et **Répéter entre les signets marqués** — consultez la section [Signets](#bookmarks).
+
+### Exportation et Importation des Favoris
+
+L'onglet Favoris comprend deux boutons pour sauvegarder et restaurer votre liste de stations :
+
+**Exporter les favoris…** — enregistre toute votre liste de favoris dans un fichier. Une boîte de dialogue vous permet de choisir entre deux formats :
+
+- **JSON** (`.json`) — une sauvegarde complète préservant les noms des stations, les URL des flux et toutes les métadonnées. Recommandé pour restaurer votre liste ultérieurement ou la déplacer vers un autre ordinateur.
+- **Liste de lecture M3U** (`.m3u`) — un format de liste de lecture standard compatible avec la plupart des lecteurs multimédias et applications radio. Notez que le format M3U ne stocke pas toutes les métadonnées des stations, de sorte que la restauration depuis un fichier M3U peut contenir moins de détails qu'une sauvegarde JSON.
+
+**Importer les favoris…** — charge les stations depuis un fichier JSON ou M3U précédemment exporté. Après avoir sélectionné le fichier, vous êtes invité à choisir comment ajouter les stations :
+
+- **Oui ((Fusionner)** — ajoute les stations importées à votre liste existante sans supprimer les favoris actuels. Les stations en double ne sont pas ajoutées deux fois.
+- **Non ((Remplacer)** — efface entièrement votre liste de favoris actuelle et la remplace par le contenu du fichier importé.
+- **Annuler** — retourne au navigateur sans effectuer de modifications.
+
+Après une importation réussie, la liste de favoris, la liste des stations à enregistrement planifié et la liste des stations du minuteur sont toutes actualisées automatiquement.
+
+### Organiser les Favoris en Groupes
+
+Les favoris peuvent appartenir à un dossier/groupe, affiché avec le suffixe "— Groupe" après le nom de la station dans la liste (par exemple, "NPR Newscast — NPR").
+
+- **Importer depuis M3U** — si le fichier utilise l'étiquette `group-title` (la convention utilisée par DVBViewer et la plupart des autres éditeurs et lecteurs M3U) Pour organiser les stations dans des dossiers, freeAudio lit ces fichiers et conserve le groupe de chaque station lors de l'importation. L'exportation de vos favoris au format M3U inscrit la même étiquette, Ainsi, la structure des dossiers est préservée lors d'un aller-retour via freeAudio.
+- **Assigner ou supprimer un groupe manuellement** — marquer un ou plusieurs favoris avec le `.` (consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items) ci-dessus), puis choisissez **Assigner au groupe…** dans le menu contextuel (Touche Applications / `Shift+F10`) et saisissez un nom de groupe. Laissez le champ vide pour effacer les favoris marqués de leur groupe. Si aucun favori n'est marqué, la commande s'applique au favori actuellement sélectionné.
+- **Filtrer par groupe** — le champ Filtrer situé au-dessus de la liste des favoris effectue également une correspondance avec les noms de groupes et accepte plusieurs mots, chacun pouvant correspondre à un champ différent. Par exemple, en tapant `Houston Classical` on trouve "Houston Public Media Classical" même si cette expression exacte n'apparaît jamais nulle part — "Houston" correspond au groupe et "Classical" correspond au nom de la station.
+
+### Réorganisation des Favoris
+
+Une station étant sélectionnée dans l'onglet Favoris, appuyez sur la `virgule` pour entrer en mode déplacement — vous entendrez un bip. Accédez à la position cible avec les touches fléchées, puis appuyez à nouveau sur la `virgule`. La station est placée à l'emplacement choisi et la nouvelle organisation est immédiatement enregistrée. En appuyant à nouveau sur la `virgule` à la même position annule le déplacement.
+
+### Raccourcis Clavier Directs pour les Stations Favorites
+
+Chaque station de la liste des favoris est enregistrée comme un script distinct dans la boîte de dialogue Gestes de commandes de NVDA, sous la catégorie **Stations freeAudio**. Vous pouvez assigner n'importe quel raccourci clavier à n'importe quelle station et l'utiliser depuis n'importe où — sans avoir à ouvrir la fenêtre du navigateur.
+
+Pour assigner un raccourci :
+
+1. Ouvrez le Menu NVDA → Préférences → Gestes de commandes.
+2. Développez la catégorie **Stations freeAudio**.
+3. Trouvez la station par son nom, sélectionnez-la et appuyez sur **Ajouter**.
+4. Appuyez sur la combinaison de touches souhaitée et confirmez.
+
+Le raccourci démarre la station immédiatement. Si la station est retirée des favoris, son entrée disparaît de la catégorie et tout raccourci assigné est automatiquement supprimé par NVDA. Lorsqu'une nouvelle station est ajoutée aux favoris, elle apparaît immédiatement dans la catégorie — il n'est pas nécessaire de rouvrir la boîte de dialogue Gestes de commandes.
+
+### Ajout d'une Station Personnalisée
+
+Pour ajouter une station qui n'est pas dans Radio Browser, utilisez le bouton Ajouter une station personnalisée. Dans la boîte de dialogue qui apparaît, saisissez le nom de la station et l'URL du flux pour l'ajouter directement à vos favoris. Les stations personnalisées peuvent être écoutées et réorganisées comme n'importe quel autre favori.
+
+Deux boutons supplémentaires sont disponibles dans cette boîte de dialogue:
+
+- **Tester l'URL** — vérifie l'URL du flux que vous avez saisie avant d'ajouter la station et annonce si elle est accessible. Utile pour détecter une faute de frappe ou un lien mort avant qu'il ne se retrouve dans votre liste de favoris.
+- **Ajouter au annuaire de Radio Browser…** — ouvre la [page de soumission de Radio Browser](https://www.radio-browser.info/add) dans votre navigateur par défaut, afin que vous puissiez partager la station avec la communauté plus large de Radio Browser une fois que vous avez confirmé qu'elle fonctionne. Consultez la section [Ajout d'une station à Radio Browser](#adding-a-station-to-radio-browser) ci-dessus pour savoir ce que le formulaire de soumission attend.
+
+### Profil Audio de la Station
+
+L'onglet Favoris comprend deux boutons pour gérer les paramètres audio par station:
+
+**Enregistrer le profil audio de cette station** — enregistre le niveau de volume actuel et les effets actifs (chœur, EQ, etc.), et les valeurs de gain EQ en tant que profil lié à cette station spécifique. Chaque fois que cette station commence à jouer, ses paramètres de volume, d'effets et de gain enregistrés sont automatiquement appliqués, remplaçant les valeurs par défaut globales.
+
+**Effacer le profil audio** — supprime le profil audio enregistré de la station sélectionnée. Après l'effacement, la station revient aux paramètres globaux de volume, d'effets et gain EQ. Ce bouton n'est actif que lorsque la station sélectionnée possède déjà un profil enregistré.
+
+Les deux boutons sont situés sous la liste des favoris et ne sont activés que lorsqu'une station de la liste est sélectionnée.
+
+## Reconnaissance Musicale
+
+Appuyer trois fois sur `Ctrl+Win+I` déclenche la reconnaissance musicale basée sur Shazam pour le flux en cours de lecture. La reconnaissance ne démarre que lorsqu'aucune métadonnée ICY (informations sur la piste diffusées par la station) n'est disponible ; si des métadonnées sont présentes, elles sont copiées dans le presse-papiers à la place. Appuyer quatre fois sur `Ctrl+Win+I` force la reconnaissance même lorsque la station envoie des métadonnées, ce qui est utile lorsque ces métadonnées sont erronées.
+
+La reconnaissance fonctionne comme suit : un court échantillon audio est capturé à partir du flux à l'aide de ffmpeg (qui s'identifie comme un lecteur multimédia, de sorte que les stations qui refusent les programmes inconnus répondent quand même), l'algorithme d'empreinte digitale Shazam est appliqué et le résultat est envoyé aux serveurs de Shazam. Si la reconnaissance réussit, le titre du morceau, l'artiste, l'album et l'année de sortie sont annoncés par NVDA et automatiquement copiés dans le presse-papiers. Si l'option **Enregistrer les morceaux aimés dans un fichier texte** est activée, le résultat de la reconnaissance est également ajouté à `likedSongs.txt`.
+
+Si ffmpeg ne parvient pas à lire directement le flux (par exemple, si la station refuse la connexion ou si l'adresse du flux se termine par `.nsv`, ce qui est fréquent pour les serveurs SHOUTcast et entraîne une erreur de détection du format audio par ffmpeg), freeAudio enregistre un court extrait du flux et le fait décoder par ffmpeg. Cette opération est automatique et ne nécessite aucun paramétrage.
+
+**Retour audio:** Deux bips montants retentissent lorsque la reconnaissance démarre et deux bips descendants lorsqu'elle se termine. Un bip court retentit toutes les 2 secondes pendant que le processus est en cours.
+
+**Exigence:** ffmpeg.exe est requis. Un ffmpeg.exe placé dans le dossier de l'extension est utilisé automatiquement ; s'il se trouve à un emplacement différent, le chemin peut être défini dans les Paramètres. Téléchargez ffmpeg depuis [ffmpeg.org](https://ffmpeg.org/download.html).
+
+**Remarque sur les stations qui insèrent des publicités:** certaines stations diffusent une courte publicité à chaque nouvelle connexion établie à leur flux, indépendamment de la diffusion que vous écoutez déjà. La reconnaissance évite d'échantillonner cette publicité en réutilisant la connexion du flux en arrière-plan existante de freeAudio (la même que celle utilisée pour le [Décalage temporel (retour en arrière sur la radio en direct)](#time-shift-rewind-live-radio)) au lieu d'en ouvrir une nouvelle, de sorte qu'elle identifie ce qui est réellement diffusé plutôt qu'une publicité. Cela fonctionne automatiquement et ne nécessite aucune configuration.
+
+## Miroir Audio
+
+Le raccourci `Ctrl+Win+M` met les miroirs du flux en cours de lecture vers un deuxième périphérique de sortie audio simultanément. Ceci est utile pour écouter sur deux périphériques différents en même temps, tel que des haut-parleurs et écouteurs.
+
+Au premier appui, une boîte de dialogue de sélection répertoriant les périphériques de sortie disponibles apparaît. Une fois le périphérique choisi, la mise en miroir commence et la lecture principale se poursuit sans interruption. Appuyer à nouveau sur le raccourci arrête la mise en miroir.
+
+**Cas d'utilisation:**
+
+- **Haut-parleurs + écouteurs** — Laissez un invité suivre la même émission avec des écouteurs pendant que vous écoutez via les haut-parleurs de l'ordinateur.
+- **Configuration d'enregistrement** — Acheminez la sortie principale vers des haut-parleurs et la deuxième sortie vers un enregistreur externe ou une interface audio pour une capture externe.
+- **Multi-pièces** — Jouez simultanément via un haut-parleur Bluetooth et le haut-parleur intégré ; aucun logiciel supplémentaire n'est nécessaire pour transporter l'audio dans une autre pièce.
+- **Surveillance à distance** — Dans une session de partage d'écran ou de bureau à distance, les côtés local et distant peuvent entendre le même flux simultanément.
+
+## Mode Obligato
+
+Le raccourci `Ctrl+Win+Shift+M` permet de diffuser discrètement une station favorite en arrière-plan, via un moteur audio distinct du lecteur principal — ainsi, vous profitez d'une douce musique de fond, quelle que soit votre activité.
+
+À la première pulsation, une boîte de dialogue s'ouvre avec trois contrôles:
+
+- **Station de fond** — une liste de vos stations favorites pour choisir celle qui sera diffusée en boucle. Vous devez avoir au moins une station favorite ; si votre liste est vide, freeAudio vous invite à en ajouter une (`Ctrl+Win+V` pendant la lecture d'une station).
+- **Sortie audio** — périphérique sur lequel la station de fond est diffusée: **Identique à la sortie principale** (par défaut), **Par défaut du système** ou tout périphérique spécifique que freeAudio peut détecter.
+- **Volume de fond** — le volume de la station de fond, exprimé en pourcentage du volume actuel de la station principale (25 %, 50 %, 75 %, 100 %, 125 % ou 150 %). Vos préférences sont mémorisées pour la prochaine fois.
+
+Une fois lancée, la station de fond continue de fonctionner indépendamment du lecteur principal — changer de station, écouter des podcasts ou des livres audio sur le lecteur principal, ou l'arrêter complètement, n'interrompt pas le mode Obligato. Deux éléments restent automatiquement liés au lecteur principal:
+
+- **Volume** — Le volume de fond est maintenu en permanence au pourcentage choisi du volume actuel du lecteur principal, ce qui permet d'augmenter ou de diminuer le volume principal (`Ctrl+Win+↑`/`↓`) ajuste la musique de fond de la même manière.
+- **Mettre en pause** — en mettons en pause le lecteur principal (`Ctrl+Win+P`) met également en pause la station de fond, et lorsque le lecteur principal reprend, cela reprend. Un arrêt complet du lecteur principal n'est pas considéré comme une pause, la station de fond continue donc à jouer.
+
+Appuyez de nouveau sur `Ctrl+Win+Shift+M` à tout moment pour arrêter le mode Obligato.
+
+## Enregistrement
+
+Les enregistrements sont enrregistrés par défaut dans `Documents\freeAudio Recordings\`. Le nom du fichier inclut le nom de la station (ou le titre du morceau, en mode enregistrement de morceau) et l'heure de début de l'enregistrement. Le dossier des enregistrements peut être modifié à tout moment depuis NVDA Menu → Préférences → Paramètres → freeAudio → **Dossier des enregistrements**.
+
+Le paramètre **Format de sortie d'enregistrement** contrôle la manière dont les enregistrements terminés sont  enregistrés:
+
+- **Format de flux original** écrit le flux exactement tel qu'il a été reçu. Une diffusion HLS peut donc produire un fichier `.ts`.
+- **Audio uniquement, codec original** supprime la couche vidéo/conteneur sans réencoder l'audio. Par exemple, l'audio AAC d'un enregistrement HLS `.ts` est normalement enrgistré sous `.m4a`, préservant ainsi la qualité de diffusion.
+- **MP3** convertit l'audio après l'enregistrement en utilisant le débit binaire sélectionné. La conversion utilise le `ffmpeg.exe` fourni avec freeAudio et s'exécute en arrière-plan afin que NVDA reste réactif. Si la conversion échoue, l'enregistrement original est conservé.
+
+**Enregistrement instantané:** Pendant la lecture d'une station, appuyez une fois sur `Ctrl+Win+E`. Appuyez à nouveau pour arrêter. La lecture se poursuit sans interruption.
+
+**Enregistrement du morceau (morceau en cours):** Appuyez sur `Ctrl+Win+E` **deux fois** de suite pendant qu'une station qui diffuse des métadonnées ICY est en cours de lecture. L'enregistrement démarre immédiatement après la deuxième pulsation — freeAudio patiente brièvement si vous appuyez une troisième fois — et porte le nom du titre de la piste actuelle. Lorsque la station annonce la pisste suivante, l'enregistrement s'arrête à ce point et NVDA annonce le nom du fichier enregistré. Pour l'interrompre plus tôt, appuyez de nouveau deux fois sur `Ctrl+Win+E`. Si la station actuelle ne diffuse pas de métadonnées ICY, l'enregistrement du morceau n'est pas disponible et NVDA vous en informera.
+
+**Enregistrement de chaque morceau:** Appuyez sur `Ctrl+Win+E` **trois fois** de suite pour enregistrer tous les morceaux diffusés par la station jusqu'à ce que vous arrêtiez l'enregistrement. freeAudio conserve une seule connexion ouverte et crée un nouveau fichier à chaque changement de piste, évitant ainsi toute perte de données entre les morceaux. Chaque morceau est enregistré dans un fichier distinct, nommé d'après son titre et son heure de début. Au démarrage de l'enregistrement, NVDA annonce que chaque morceau est enregistré et affiche le titre en cours. Pour arrêter, appuyez deux fois sur `Ctrl+Win+E` ; NVDA annonce alors le nombre de morceaux enregistrés.
+
+Quelques détails concernant l'enregistrement de chaque morceau:
+
+- Le premier morceau (enregistré à partir du moment où vous avez appuyé sur les touches) et le dernier morceau (coupé lorsque vous vous arrêtez) sont incomplètes, leurs noms de fichiers contiennent donc **(partiel)** — par exemple `Artiste - Titre (partiel) - 2026-10-09 10-15.mp3`.
+- Les fragments de moins de 15 secondes — jingles, séquences publicitaires ou titres oscillant entre deux valeurs — sont écartés au lieu d'être enregistrés.
+- Il faut que la station envoie les titres des morceaux directement dans le flux audio (métadonnées ICY). Les stations HLS (.m3u8) et les serveurs qui n'envoient pas les titres de cette manière ne peuvent pas être divisés en morceaux ; NVDA vous en informe et aucun enregistrement n'est effectué.
+- Pendant son exécution, `Ctrl+Win+I` annonce le morceau en cours d'enregistrement, et non celui avec lequel il a commencé.
+
+**Enregistrement planifié:** Ouvrez l'onglet Enregistrement dans le navigateur. Sélectionnez une station parmi vos favoris, entrez l'heure de début en format HH:MM et la durée en minutes, sélectionnez un ou plusieurs jours actifs, puis choisissez le mode de récurrence et le mode d'enregistrement:
+
+Un champ **Filtrer** au-dessus de la liste des stations vous permet d'affiner la liste des favoris en temps réel, afin que vous puissiez trouver rapidement la station que vous souhaitez planifier.
+
+**Jours actifs:** Cochez un ou plusieurs jours de la semaine. En mode Enregistrer seulement, une entrée distincte est créée pour chaque jour sélectionné, placée à la prochaine occurrence de ce jour. En mode Récurrence, l'enregistrement se répète uniquement pour les jours cochés. Si aucun jour n'est sélectionné, l'enregistrement n'est pas limité à des jours spécifiques.
+
+**Mode de récurrence:**
+
+- **Enregistrer une fois** — crée un enregistrement unique pour chaque jour sélectionné. Chaque entrée est placée à la prochaine occurrence de ce jour; si l'heure d'aujourd'hui est déjà dépassée, l'entrée est automatiquement reportée à la semaine suivante.
+- **Répéter chaque semaine** — se répète chaque semaine les jours actifs sélectionnés jusqu'à sa suppression de la liste de planification.
+
+**Enregistrer l'enregistrement dans:** Pour chaque enregistrement planifié, vous pouvez choisir de l'enregistrer dans le dossier d'enregistrements par défaut ou dans un dossier personnalisé. Utilisez le bouton **Parcourir...** pour sélectionner un dossier de manière interactive. Si le dossier choisi devient indisponible, l'enregistrement revient au dossier par défaut et vous en êtes averti.
+
+**Mode d'enregistrement:**
+
+- **Enregistrer pendant l'écoute** — joue et enregistre simultanément à travers du BASS backend.
+- **Enregistrer seulement** — enregistre silencieusement en arrière-plan sans aucune sortie audio; le moteur d'enregistrement se connecte directement au flux.
+
+Une fois une planification ajouté, il apparaît dans la liste ci-dessous. Utilisez le bouton **Supprimer la sélection** pour supprimer une planification ou **Modifier la sélection** pour modifier son heure, sa durée, sa récurrence, ses jours actifs, son mode d'enregistrement ou son dossier de sortie.
+
+NVDA annonce quand un enregistrement commence et quand il se termine. Si NVDA est redémarré alors qu'un enregistrement planifié est actif, l'enregistrement reprend automatiquement au démarrage.
+
+**Comment les enregistrements se connectent:** Les enregistrements instantanés, les enregistrements de morceaux et les enregistrements de tous les morceaux établissent leur propre connexion à la station au lieu de copier ce que vous entendez. Ainsi, un enregistrement instantané ou un enregistrement de tous les morceaux continue de se dérouler lorsque vous mettez la lecture en pause ou que vous changez de station ; il reprend sur la station où il a commencé. Si vous arrêtez la lecture avec `Ctrl+Win+S` pendant un enregistrement, une confirmation vous sera demandée au préalable, car l'enregistrement s'arrête également. L'inconvénient de cette connexion séparée est qu'une station qui diffuse une courte publicité à chaque nouvelle connexion peut placer cette publicité au début du fichier.
+
+## Décalage temporel (retour en arrière sur la radio en direct)
+
+Le décalage temporel vous permet de rembobiner la station que vous écoutez, comme un DVR ou une cassette : suspendez le moment, revenez quelques minutes en arrière et rattrapez le direct quand vous le souhaitez. La lecture n'a pas besoin de s'arrêter : le retour en arrière et l'avance rapide se font instantanément sur le même flux audio.
+
+Cette fonctionnalité est **désactivée par défaut**. Activez-la depuis le Menu NVDA → Préférences → Paramètres → freeAudio → **Activer la mémoire tampon de décalage temporel (retour en arrière sur la radio en direct)**, ou basculez-la instantanément à tout moment avec `Ctrl+Win+T`.
+
+> **Remarque:** freeAudio conserve désormais à tout moment une petite capture en arrière-plan de la station en cours de lecture — pas seulement lorsque ce paramètre est activé — car la [Reconnaissance Musicale](#music-recognition) s'appuie sur ce comportement d'évitement de la publicité décrit dans cette section. Lorsque ce paramètre est **désactivé**, cette capture en arrière-plan est conservée pendant environ 45 secondes et `Ctrl+Win+J`/`Ctrl+Win+K` restent indisponibles — seule la taille de la mémoire tampon change, pas si elle s'exécute. L'activation du paramètre augmente la même capture jusqu'à la mémoire tampon de rembobinage complète décrite ci-dessous.
+
+### Comment ça fonctionne
+
+Une fois activé, freeAudio capture en continu la station en cours de lecture dans une mémoire tampon locale tournante en arrière-plan, indépendamment de la lecture normale. La mémoire tampon conserve les données audio les plus récentes, jusqu'à la durée définie par le paramètre **Durée de la mémoire tampon de décalage temporel** ; les données audio plus anciennes sont automatiquement écartées au fur et à mesure que de nouvelles données audio arrivent, de sorte que la mémoire tampon représente toujours le "passé récent " par rapport au bord du direct.
+
+- **`Ctrl+Win+J`** — Reculer de 15 secondes. La première pulsation vous fait passer de la lecture en direct à la lecture en décalage temporel, en commençant 15 secondes derrière le bord du direct. Chaque pulsation supplémentaire recule de 15 secondes supplémentaires.
+- **`Ctrl+Win+K`** — Avancer de 15 secondes en mode décalage temporel. Une fois le bord du direct atteint, la lecture revient automatiquement au flux en direct et NVDA annonce "Retour au direct" — vous n'avez rien de plus à faire pour reprendre l'écoute normale.
+- **`Ctrl+Win+Alt+J`** / **`Ctrl+Win+Alt+K`** — Les mêmes fonctions de retour en arrière et d'avance rapide, mais par incréments de 1 seconde au lieu de 15, pour des réglages précis. Consultez la section [Recherche Précise (1 Seconde)](#fine-seeking-1-second).
+- **`Ctrl+Win+T`** — Active ou désactive toute la fonctionnalité. La désactiver en mode décalage temporel vous renvoie immédiatement au direct et arrête la capture en arrière-plan pour la station actuelle.
+
+La capture en arrière-plan continue de fonctionner tout le temps que vous êtes en décalage temporel, de sorte que le bord du direct continue d'avancer même pendant que vous écoutez quelque chose de quelques minutes plus tôt — exactement comme un vrai DVR.
+
+### Activation et préchauffage de la mémoire tampon
+
+La mémoire tampon commence à se remplir dès qu'une station commence à jouer (une fois la fonctionnalité activée) ou au moment où vous activez la fonctionnalité tout en écoutant déjà une station. Pour cette raison, le retour en arrière n'est possible qu'une fois que quelques secondes d'audio ont réellement été capturées — si vous appuyez sur `Ctrl+Win+J` immédiatement après avoir changé de station, NVDA vous indique qu'il n'y a pas encore assez d'audio dans la mémoire tampon. Attendez simplement quelques secondes et réessayez.
+
+Passer à une station différente redémarre toujours la mémoire tampon pour la nouvelle station ; l'audio de la station précédente est écarté.
+
+### Flux pris en charge
+
+Le décalage temporel fonctionne avec la même gamme de flux déjà prise en charge par freeAudio :
+
+- Flux HTTP/HTTPS simples (MP3, AAC, OGG, etc.), y compris les serveurs de type Shoutcast/Icecast.
+- **Flux HLS (`.m3u8`)** — freeAudio résout la liste de lecture principale de la station, suit la liste de lecture média et télécharge les segments en arrière-plan pour maintenir la mémoire tampon remplie.
+
+Dans le cas rare où la liste de lecture d'une station ne peut pas du tout être lue (par exemple un manifeste `.m3u8` cassé ou inaccessible), NVDA vous indique que le retour en arrière n'est pas disponible pour cette station particulière.
+
+### Exigences et limitations
+
+- **Nécessite le BASS backend**, que freeAudio utilise toujours pour la lecture (consultez la section [Lecture](#playback)).
+- La longueur du tampon est définie par le paramètre **Durée de la mémoire tampon de décalage temporel** — consultez la section [Paramètres](#settings).
+- La mémoire tampon est par station : changer de station, arrêter la lecture ou redémarrer NVDA l'efface et repart de zéro.
+- La lecture en décalage temporel utilise son propre fichier de mémoire tampon local et ne produit pas d'enregistrement sauvegardé — si vous souhaitez conserver l'audio de façon permanente, utilisez également l'Enregistrement instantané (`Ctrl+Win+E`).
+
+## Minuterie
+
+Ouvrez l'onglet Minuterie dans le navigateur de stations (`Alt+4`). Deux types de minuterie peuvent être ajoutés:
+
+Lors du choix d'une station pour une minuterie d'alarme, un champ **Filtrer** au-dessus de la liste des stations vous permet d'affiner la liste des favoris en temps réel.
+
+**Alarme — démarrer la radio:** Commence automatiquement la lecture d'une station sélectionnée parmi vos favoris à l'heure spécifiée. Choisissez une station et entrez l'heure en format HH:MM.
+
+**Mise en veille — arrêter la radio:** Arrête la lecture à l'heure spécifiée. Lorsque la minuterie se déclenche, le volume est progressivement réduit sur 60 secondes avant l'arrêt de la lecture. Aucune sélection de station n'est nécessaire ; entrez simplement l'heure.
+
+Pour les deux types, si l'heure saisie est déjà dépassée, l'action est planifiée pour le lendemain. L'ajout d'une minuterie est bloquée si une autre minuterie  — de n'importe quel type — existe déjà en même temps ; un message vous informe du conflit et vous invite à supprimer d'abord l'entrée existante. Les minuteries en attente sont répertoriées dans l'onglet ; sélectionnez-en un et appuyez sur le bouton Supprimer la minuterie sélectionnée pour l'annuler.
+
+**Minuteries récurrentes:** Sous **Récurrence**, choisissez  **Répéter chaque semaine** au lieu de l'option par défaut  de Seulement une fois pour que  la minuterie s'exécute chaque semaine au lieu de Seulement une fois. La liste de contrôle **Jours actifs** vous permet ensuite de choisir les jours de la semaine où la répétition a lieu ; si vous ne cochez aucune case la minuterie se répète  tous les jours. Une minuterie récurrente continue de s'exécuter selon la planification jusqu'à ce que vous la supprimiez de la liste des minuteries en attente — il ne s'agit pas d'une entrée ponctuelle qui disparaît après son exécution.
+
+## Podcasts
+
+freeAudio comprend un lecteur de podcast complet. Vous pouvez vous abonner à n'importe quel flux de podcast RSS ou Atom, parcourir les épisodes, les lire, les télécharger et reprendre la lecture là où vous l'avez laissée — le tout entièrement accessible.
+
+### Accéder à l'Onglet Podcasts
+
+Ouvrez le navigateur de stations avec `Ctrl+Win+R` et passez à l'onglet **Podcasts** en utilisant `Ctrl+Tab` ou `Alt+6`. L'onglet est organisé en trois zones principales:
+
+1. **Rechercher et ajouter** — section supérieure permettant de découvrir de nouveaux podcasts, comprenant une liste d'aperçu montrant les épisodes du résultat de recherche actuellement sélectionné.
+2. **Abonnements** — liste de vos flux auxquels vous êtes abonné.
+3. **Épisodes** — liste des épisodes pour le flux sélectionné, avec commandes de lecture. Une liste **Signets** directement en dessous affiche les signets de l'épisode sélectionné — consultez la section [Signets](#bookmarks).
+
+### Ajout d'un Flux de Podcast
+
+Vous pouvez ajouter un flux de podcast de deux manières:
+
+**Par URL:**
+
+- Dans le champ **Recherche**, collez l'URL complète du flux RSS ou Atom (par exemple `https://example.com/feed.xml`).
+- Appuyez sur Entrée.
+- freeAudio récupère le flux, le valide et l'ajoute à vos abonnements. Si le flux est valide, vous entendrez une confirmation avec le titre du flux. En cas d'échec, un message d'erreur explique pourquoi.
+
+**Par recherche:**
+
+- Dans le champ **Recherche**, saisissez un mot-clé (titre du podcast, sujet ou nom d'hôte) et appuyez sur Entrée.
+- freeAudio recherche dans le répertoire des podcasts iTunes et affiche les podcasts correspondants dans la liste **Résultats de recherche**.
+- La sélection d'un résultat récupère ce flux en arrière-plan et répertorie ses épisodes dans la liste **Épisodes dans le résultat sélectionné** juste en dessous, afin que vous puissiez prévisualiser ce que l'émission contient réellement avant de décider de vous abonner — consultez la section [Prévisualiser les Épisodes Avant de vous Abonner](#previewing-episodes-before-subscribing) ci-dessous.
+- Une fois que vous êtes satisfait de ce que vous voyez, sélectionnez le résultat et appuyez sur `Entrée`, ou ouvrez son menu contextuel (touche Applications / `Shift+F10`, ou clic droit) et choisissez **S'abonner**, pour l'ajouter à vos abonnements. Le flux est ajouté immédiatement et apparaît dans votre liste d'abonnements. Il n'y a pas de bouton distinct  "Ajouter la sélection  à partir de la recherche" — `Entrée` ou le menu contextuel est le seul moyen de s'abonner à partir des résultats de recherche, en gardant l'interface propre.
+
+> **Conseil:** Vous pouvez également saisir une URL de flux directement dans le champ de recherche — si elle semble être une URL valide, l'extension tentera de l'ajouter en tant que flux sans effectuer de recherche.
+
+**Menu contextuel pour les résultats de recherche:** Cliquez avec le bouton droit sur un résultat de recherche, ou sélectionnez-le et appuyez sur la touche Applications / `Shift+F10`, pour ouvrir un menu avec une seule action **S'abonner**, identique à celle consistant à appuyer sur `Entrée` sur le résultat.
+
+### Prévisualiser les Épisodes Avant de vous Abonner
+
+Avant de souscrire à un abonnement, vous pouvez écouter les épisodes d'un podcast directement à partir des résultats de recherche. Chaque fois que vous sélectionnez un podcast dans la liste  **Résultats de recherche**, freeAudio récupère ce flux et affiche ses épisodes (titre et date de publication) dans la liste  **Épisodes dans le résultat sélectionné** ci-dessous.
+
+- Sélectionnez un épisode dans cette liste d'aperçu et appuyez sur `Entrée`, ou ouvrez son menu contextuel (touche Applications / `Shift+F10`, ou clic droit) et choisissez **Aperçu**, pour commencer à le lire via le lecteur normal. Toutes les commandes de lecture habituelles  (pause, volume, décalage temporel, etc.) fonctionnent exactement comme sur n'importe quelle autre station ou épisode.
+- Pendant la prévisualisation d'un épisode, le même menu contextuel affiche **Arrêter l'aperçu** à la place de **Aperçu** — choisissez-le ou appuyez à nouveau sur `Entrée` sur cet épisode pour arrêter.
+- La prévisualisation ne vous abonne à rien ; c'est uniquement pour écouter avant de vous décider. La liste d'aperçu elle-même est temporaire — elle est remplacée dès que vous sélectionnez un résultat de recherche différent, et elle ne persiste nulle part comme le font vos abonnements réels.
+
+### Gestion des Abonnements
+
+Une fois que vous avez ajouté des flux, ils apparaissent dans la liste **Abonnements**. Chaque entrée affiche le titre du flux et le nombre d'épisodes disponibles.
+
+- **Sélectionner un flux** pour voir ses épisodes dans la liste inférieure. La zone de texte en lecture seule **Détails du flux** sous la liste des abonnements affiche le titre du flux, l'auteur, la description, le nombre d'épisodes et l'URL.
+- **Actualiser un flux** — sélectionnez-le et appuyez sur le bouton **Actualiser le flux** (disponible via le menu contextuel, voir ci-dessous) pour récupérer les derniers épisodes. Tous les flux sont également actualisés automatiquement en arrière-plan lorsque vous ouvrez l'onglet Podcasts, de sorte que vous voyez généralement les épisodes les plus récents sans intervention manuelle.
+- **Supprimer un flux** — sélectionnez-le et appuyez sur `Supprimer` ou utilisez le menu contextuel pour le supprimer de vos abonnements. Une confirmation vous sera demandée avant la suppression.
+
+**Menu contextuel pour les flux:** Cliquez avec le bouton droit sur un flux, ou sélectionnez-le et appuyez sur la touche Applications / `Shift+F10`, pour ouvrir un menu avec:
+
+- **Actualiser le flux** — récupérez de nouveaux épisodes maintenant.
+- **Enregistrer le profil audio de ce podcast** / **Effacer le profil audio** — consultez la section [Profil Audio du Podcast](#podcast-audio-profile).
+- **Supprimer le flux** — supprimez l'abonnement.
+- **Copier l'URL du flux** — copiez l'URL du flux dans le presse-papiers.
+
+### Parcourir et Lire des Épisodes
+
+Sélectionnez un flux dans la liste des abonnements ; ses épisodes apparaissent dans la liste **Épisodes** ci-dessous. Chaque épisode montre:
+
+- Son numéro d'épisode (1 = épisode le plus ancien du flux, en comptant jusqu'au plus récent).
+- Sa date de publication (si disponible).
+- Son titre.
+- Un préfixe **"Ecouté"** si l'épisode a été entièrement joué.
+- Un suffixe de durée, soit la durée totale (si jamais joué) soit la progression écoulée/totale (si partiellement jouée).
+
+**Lecture:**
+
+- Sélectionnez un épisode et appuyez sur `Entrée` ou `Espace` pour commencer à le lire. Si un épisode a été partiellement lu auparavant, il reprend là où vous l'avez laissé.
+- La ligne n'est *pas* mise à jour pendant la lecture de l'épisode — c'est intentionnel, donc NVDA ne réannonce pas la ligne à plusieurs reprises pendant que vous êtes assis dessus. Son indicateur "Ecouté" et sa durée sont actualisés immédiatement dès que vous mettez l'épisode en pause ou que sa lecture se termine, de sorte que l'affichage est toujours précis au moment où cela compte ; il ne s'accélère tout simplement pas seconde par seconde pendant la lecture.
+- Utilisez `F3` / `F4` dans l'onglet Podcasts pour passer à l'épisode précédent/suivant et le lire immédiatement. Vous pouvez également utiliser `←` / `→` pendant que la liste des épisodes est focalisée, ou `Ctrl+←` / `Ctrl+→` n'importe où dans l'onglet Podcasts — les deux fonctionnent de manière identique.
+- Utilisez `Shift+F3` / `Shift+F4` pour vous déplacer entre les flux sans lire les épisodes.
+- Appuyez sur `Espace` pendant la lecture d'un épisode pour mettre en pause ou reprendre la lecture.
+
+**Reprise de la lecture:** freeAudio enregistre automatiquement votre position dans chaque épisode de podcast — immédiatement chaque fois que vous faites une pause ou que l'épisode se termine, et toutes les 15 secondes en arrière-plan pendant que vous continuez à écouter, afin qu'un crash ou un redémarrage inattendu ne perde pas beaucoup de progression. Si vous arrêtez ou mettez la lecture en pause et revenez plus tard, l'épisode reprend à partir de la position enregistrée. Si vous lisez l'épisode jusqu'à la toute fin (au cours des 3 dernières secondes), il est marqué comme "Ecouté" et ne reprendra pas — il recommencera depuis le début la prochaine fois et le préfixe "Ecouté" apparaîtra dans la liste.
+
+**Menu contextuel pour les épisodes:** Cliquez avec le bouton droit sur un épisode, ou sélectionnez-le et appuyez sur la touche Applications / `Shift+F10`, pour ouvrir un menu avec:
+
+- **Lire l'épisode** — démarrez la lecture.
+- **Télécharger l'épisode** — téléchargez le fichier de l'épisode dans votre dossier d'enregistrements.
+- **Enregistrer le profil audio pour ce podcast** / **Effacer le profil audio** — les mêmes commandes que celles du menu contextuel du flux sont incluses ici par commodité afin que vous n'ayez pas à revenir à la liste des abonnements. Ils conservent toujours un seul profil pour l'ensemble du podcast, et non un profil distinct pour cet épisode — consultez la section [Profil Audio du Podcast](#podcast-audio-profile).
+- **Copier l'URL de l'épisode** — copiez l'URL audio directe dans le presse-papiers.
+
+### Téléchargement d'Épisodes
+
+Sélectionnez un épisode et cliquez sur le bouton **Télécharger l'épisode** (ou utilisez le menu contextuel). L'épisode est téléchargé dans votre dossier d'enregistrements (`Documents\freeAudio Recordings\` par défaut). Le nom de fichier est basé sur le titre de l'épisode et l'extension de fichier détectée (`.mp3`, `.m4a`, `.ogg`, etc.). NVDA annonce le début et la fin du téléchargement. Si le fichier existe déjà, vous en êtes informé et le téléchargement est ignoré.
+
+### Filtrage des Épisodes
+
+Au-dessus de la liste des épisodes se trouve un champ  **Filtrer**. Au fur et à mesure que vous tapez, la liste des épisodes est filtrée en temps réel pour afficher les épisodes dont le titre contient le texte saisi, ou dont le numéro d'épisode correspond exactement à celui-ci — donc en tapant `47` passe directement à l'épisode 47 même si "47" n'apparaît nulle part dans son titre. NVDA annonce le nombre d'épisodes correspondants après chaque changement. Appuyez sur la flèche `Bas` depuis le champ Filtrer pour déplacer le focus directement vers la liste filtrée.
+
+### Détails de la Lecture du Podcast
+
+Les épisodes de podcast sont lus à l'aide du **BASS backend** (le même moteur que celui utilisé pour les flux radio et, à partir de cette version, le seul système de lecture utilisé par freeAudio). Étant donné que les épisodes sont téléchargés progressivement et peuvent être recherchés, vous pouvez utiliser les raccourcis du décalage temporel: reculer/avancer (`Ctrl+Win+J`/`Ctrl+Win+K`) pendant la lecture d'un podcast pour effectuer une recherche dans l'épisode. La position est enregistrée automatiquement afin que vous puissiez la reprendre plus tard.
+
+**Recherche par niveaux:** Contrairement au retour en arrière fixe de 15 secondes de la radio en direct, la recherche dans un podcast ou un livre audio s'adapte à la façon dont vous appuyez sur la touche, ce qui vous permet d'effectuer une petite correction ou de faire un grand saut sans avoir à appuyer plusieurs fois:
+
+- **Maintenir la touche enfoncée** (répétition automatique) recule ou avance par pas de **5 secondes** par répétition — le même petit pas que celui utilisé par le raccourci sur les fichiers.
+- **Une pulsation délibérée** permet de rechercher **12 secondes**.
+- **Deux pulsations** en succession rapide recherchent **1 minute**.
+- **Trois ou plus pulsations** recherchent **5 minutes**; les frappes suivantes dans la même rafale n'entraînent pas d'escalade supplémentaire.
+
+Un appui long est maintenu un bref instant avant le lancement de la recherche, au cas où un autre appui serait encore nécessaire. Une seule recherche est effectuée par séquence d'appuis, sa durée étant adaptée au nombre d'appuis réalisés, et non à la somme de leurs durées respectives. Après une recherche, NVDA annonce la position écoulée/restante dans l'épisode, et non simplement "X secondes en avant/en arrière".
+
+### Recherche Précise (1 Seconde)
+
+Pour de petites corrections, comme la réécoute d'un mot manqué, freeAudio propose deux commandes distinctes qui permettent toujours d'avancer de **1 seconde** précise, peu importe comment vous appuyez dessus:
+
+- **`Ctrl+Win+Alt+J`** — recule de 1 seconde, depuis n'importe quel endroit de Windows.
+- **`Ctrl+Win+Alt+K`** — avance de 1 seconde, depuis n'importe quel endroit de Windows.
+- **`Alt+←`** / **`Alt+→`** — ces mêmes commandes sont disponibles dans le Navigateur de stations, quel que soit l'onglet.
+
+Dans un épisode de podcast, une partie du livre audio ou d'un morceau du jukebox elles fonctionnent exactement comme les commandes de recherche normales, à la différence qu'elles sont avec 1 pas de 1 seconde: NVDA annonce la position résultante écoulée/restante, et dans un dossier de livres audio ou du jukebox les limites des parties et des morceaux se comportent comme décrit pour `Ctrl+Win+J` / `Ctrl+Win+K` (une recherche en avant au-delà de la fin permet de passer à la partie ou au morceau  suivant; un retour en arrière au-delà du début s'arrête d'abord à 0:00 et seul un second retour en arrière en moins de 10 secondes permet de revenir à la partie ou au morceau précédent).
+
+Dans une station de radio en direct, le déplacement s'effectue par 1 seconde dans la mémoire tampon de décalage temporel. Comme pour `Ctrl+Win+J`, la mémoire tampon doit être activée dans les paramètres, et le premier retour arrière bascule de la lecture en direct à la lecture en décalage temporel. Une avance rapide qui s'arrête à environ 2 secondes du bord en direct revient en direct et annonce "Retour au direct".
+
+**Vitesse de lecture:** Vous pouvez régler la vitesse de lecture des épisodes du podcast, des livres audio et des morceaux du jukebox en utilisant `Ctrl+Win+Shift+K` (plus rapide) et `Ctrl+Win+Shift+J` (plus lent). La vitesse change par incréments de 0.1x, allant de 0.5x à 2.0x, avec la hauteur préservée.
+
+**Transposition (changement de la hauteur):** Indépendamment de la vitesse de lecture, vous pouvez modifier la hauteur d'un épisode de podcast, d'un livre audio ou d'un morceau du jukebox vers le haut ou vers le bas avec `Shift+Win+K` / `Shift+Win+J` — consultez la section [Transposition (Changement de la Hauteur)](#transpose-pitch-shift).
+
+**Reprise de l'effet sonore:** Lorsqu'un épisode reprend à partir d'une position enregistrée, freeAudio diffuse brièvement un léger bruitage de chargement de cassette sur un canal séparé pendant qu'il retourne à l'emplacement enregistré, au lieu de laisser l'audio de l'épisode se poursuivre normalement depuis 0:00. Ce comportement est indépendant du paramètre **Transition de changement de station** — ce paramètre uniquement affecte le passage entre les stations de radio en direct, et non la reprise des podcasts ou des livres audio.
+
+### Profil Audio du Podcast
+
+Cliquez avec le bouton droit sur un podcast dans la Liste des abonnements, ou cliquez avec le bouton droit sur n'importe lequel de ses épisodes, et choisissez **Enregistrer le profil audio de ce podcast** pour enregistrer le volume actuel, effets, gains EQ et/ou la vitesse de lecture en tant que profil lié à ce podcast. À chaque fois qu'un épisode de ce podcast est diffusé, les paramètres enregistrés sont appliqués automatiquement, remplaçant les valeurs par défaut globales. Comme la commande est disponible à la fois dans le menu contextuel du flux et dans le menu contextuel de l'épisode, vous pouvez y accéder sans revenir à la Liste des abonnements — dans tous les cas, conservez toujours un seul profil pour l'ensemble du podcast, et non un profil distinct pour chaque épisode.
+
+Une boîte de dialogue à 15 options vous permet de choisir précisément ce que vous souhaitez enregistrer:
+
+- **Volume uniquement**
+- **Effets uniquement**
+- **Volume et effets**
+- **Volume et vitesse de lecture**
+- **Effets et vitesse de lecture**
+- **Vitesse de lecture uniquement**
+- **Volume, effets et vitesse de lecture**
+- **Transposition de la hauteur uniquement**
+- **Volume et transposition de la hauteur**
+- **Effets et transposition de la hauteur**
+- **Vitesse de lecture et transposition de la hauteur**
+- **Volume, effets et transposition de la hauteur**
+- **Volume, vitesse de lecture et transposition de la hauteur**
+- **Effets, vitesse de lecture et transposition de la hauteur**
+- **Volume, effets, vitesse de lecture et transposition de la hauteur**
+
+Seuls les éléments que vous sélectionnez sont enregistrés dans le profil ; tout ce qui est laissé de côté conserve les données déjà enregistrées. Par exemple, en choisissant **Vitesse de lecture uniquement** sur un podcast qui possède déjà un profil de volume/effets enregistré, seule la vitesse est mise à jour, le reste restant inchangé.
+
+**Effacer le profil audio** supprime le profil enregistré du podcast, depuis l'un ou l'autre menu contextuel. Cette option est activée uniquement si le podcast possède déjà un profil enregistré.
+
+### Stockage des Données du Podcast
+
+Vos abonnements sont stockés dans `freeAudio_podcasts.json` dans le dossier de configuration utilisateur NVDA. Les positions des épisodes sont stockées séparément dans `podcast_positions.json` au même emplacement. Les deux fichiers sont au format JSON simple et peuvent être sauvegardés ou transférés vers un autre ordinateur.
+
+## Livres audio (GETEM, LibriVox et le Projet Gutenberg)
+
+freeAudio comprend un lecteur de livres audio qui recherche, lit et télécharge des livres à partir de trois sources:
+
+- **[GETEM](https://getem.boun.edu.tr/)** — la bibliothèque numérique gérée par le Centre Universitaire Boğaziçi pour les personnes malvoyantes. Nécessite un abonnement gratuit pour écouter en streaming ou télécharger l'audio d'un livre (la navigation ne le nécessite pas) — consultez la section [Se Connecter](#signing-in) ci-dessous.
+- **[LibriVox](https://librivox.org/)** — le projet de livres audio du domaine public lu par des bénévoles. Aucun compte ni inscription d'aucune sorte n'est nécessaire ; l'intégralité de son catalogue, y compris les fichiers audio eux-mêmes, est dans le domaine public et librement accessible.
+- **Projet Gutenberg Collection Ouverte de Livres audio** — livres audio du domaine public, narrés par des humains et des ordinateurs, hébergés sur [archive.org](https://archive.org/), complément à la bibliothèque de textes du Projet Gutenberg. Comme LibriVox, aucun compte ni inscription n'est nécessaire.
+
+Les résultats des trois sources apparaissent ensemble dans une seule liste fusionnée de **Résultats de recherche** et une seule liste fusionnée de **Bibliothèque** — il n'y a pas d'onglet ou de menu déroulant séparé pour passer de l'un à l'autre. La source de chaque livre (GETEM, LibriVox ou le Projet Gutenberg) est indiquée par une étiquette à côté de son titre et dans ses détails, ce qui vous permet de toujours savoir de quelle source il s'agit. Vous pouvez rechercher, prévisualiser, ajouter, écouter et télécharger des livres depuis n'importe quelle source exactement de la même manière ; écouter des œuvres en plusieurs parties avec reprise automatique ; et télécharger des livres pour une écoute hors ligne — le tout entièrement accessible.
+
+N'importe quelle source peut être désactivée à partir de **NVDA Menu → Préférences → Paramètres → freeAudio** avec la liste de contrôle **Sources de livres audio**, si vous souhaitez seulement effectuer une recherche parmi certaines d'entre elles, les trois sont activés par défaut.
+
+> **Remarque:** L'écoute d'un livre audio GETEM nécessite un abonnement GETEM gratuit. La consultation du catalogue GETEM ne requiert pas de compte, mais la lecture d'un livre audio GETEM en nécessite un — consultez la section [Se connecter](#signing-in) ci-dessous. Les livres LibriVox et le Projet Gutenberg  ne nécessitent jamais de compte.
+
+### Accéder à l'Onglet Livres audio
+
+Ouvrez le navigateur de stations avec `Ctrl+Win+R` et passez à l'onglet **Livres audio** en utilisant `Ctrl+Tab` o `Alt+7`. L'onglet comporte trois zones principales:
+
+1. **Recherche** — un champ de texte pour effectuer une recherche simultanée dans tous les catalogues activés avec une liste de résultats qui apparaît une fois la recherche effectuée.
+2. **Bibliothèque** — la liste des livres que vous avez ajoutés de n'importe quelle source, où vous les lisez, les téléchargez et les gérez. Une liste de **Signets** située juste en dessous affiche les signets du livre sélectionné — consultez la section [Signets](#bookmarks).
+3. **Détails** — une boîte en lecture seule indiquant la source, le titre, l'auteur, le narrateur, l'éditeur, le format, le nombre de parties, la description et l'URL du catalogue du livre sélectionné, dans n'importe quelle liste.
+
+### Se connecter
+
+GETEM nécessite d'être membre enregistré pour le flux de diffusion ou télécharger l'audio réel d'un livre, même si le catalogue lui-même peut être consulté librement. Entrez votre nom d'utilisateur et votre mot de passe GETEM une fois dans **NVDA Menu → Préférences → Paramètres → freeAudio**; ils sont stockés cryptés sur le disque (via l'API Windows Data Protection, liée à votre compte utilisateur Windows) et réutilisés automatiquement par la suite. Si vous essayez de lire ou de télécharger un livre GETEM avant de saisir vos informations d'identification, freeAudio vous demande de les ajouter d'abord dans les paramètres.
+
+LibriVox et le Projet Gutenberg ne nécessite aucune étape de connexion : ses résultats et ses fichiers audio peuvent être consultés, prévisualisés, écoutés et téléchargés immédiatement, sans aucune identification à saisir.
+
+### Recherche de Livres audio
+
+Tapez un terme de recherche dans le champ de recherche et appuyez sur `Entrée`. freeAudio effectue une recherche parmi les sources activées dans les paramètres et fusionne les résultats en une seule liste:
+
+- **GETEM** permet une recherche simultanée par titre, auteur, narrateur, sujet et éditeur, car son formulaire de recherche interne ne permet d'effectuer qu'une recherche combinant tous ces critères. Seules les œuvres disponibles en format audio (narration humaine ou informatique, audiodescription, pièces radiophoniques, livres audio DAISY, etc.) sont affichées ; les documents en braille, en gros caractères et dans d'autres formats non audio sont automatiquement exclus.
+- **LibriVox** permet une recherche par titre ou par auteur/lecteur dans son catalogue du domaine public.
+- **Projet Gutenberg** permet une recherche par titre ou par auteur dans la Collection Ouverte de Livres audio sur archive.org.
+
+Coller directement l'URL de la page de catalogue/détail d'un livre dans le champ de recherche (une page de catalogue GETEM ou une page "détails" d'archive.org pour un titre LibriVox ou Projet Gutenberg) permet de trouver directement ce livre au lieu d'effectuer une recherche par mot-clé.
+
+NVDA annonce le nombre total de livres audio trouvés.
+
+La sélection d'un résultat affiche ses détails  — auteur, narrateur, éditeur, format et nombre de parties — dans la zone de détails ci-dessous.
+
+**Aperçu:** Sélectionnez un résultat et appuyez sur `Espace`, ouvrez son menu contextuel (touche Applications / `Shift+F10`, ou clic droit) et choisissez  **Aperçu**, pour commencer à le lire depuis sa première partie sans l'ajouter à votre bibliothèque. Pendant qu'un livre est en cours de prévisualisation, le même menu contextuel affiche  **Arrêter l'aperçu** à sa place — choisissez-le ou appuyez à nouveau sur  `Espace`, pour arrêter. La prévisualisation d'un livre n'enregistre pas votre position d'écoute, car celle-ci n'est suivie que pour les livres déjà présents dans votre bibliothèque.
+
+**Ajout à votre bibliothèque:** Sélectionnez un résultat et appuyez sur `Entrée`, ou utilisez son menu contextuel et choisissez **Ajouter à la bibliothèque**, pour l'ajouter. freeAudio vous indique si le livre est déjà là.
+
+### Votre Bibliothèque
+
+Les livres que vous avez ajoutés apparaissent dans la liste **Bibliothèque**, indiquant le titre, l'auteur et le format. En sélectionner un affiche ses détails ci-dessous.
+
+- Appuyez sur `Entrée` ou `Espace` pour lire le livre sélectionné. Si rien n'est chargé, `Espace` le démarre; si quelque chose est déjà en cours de lecture, `Espace` le met en pause à la place, correspondant au reste du lecteur.
+- Utilisez `F3` / `F4` dans l'onglet Livres audio pour passer au **livre** précédent/suivant de votre bibliothèque et commencer à le lire. `Ctrl+←` / `Ctrl+→` font de même pendant que la liste des bibliothèques est focalisée.
+- Utilisez `Shift+F3` / `Shift+F4` pour vous déplacer entre les **parties** du livre en cours de lecture à la place — à l'inverse de l'onglet Podcasts, où  F3/F4 se déplacent entre les épisodes et Shift+F3/F4 se déplacent entre les flux. En effet, un livre est une entrée de bibliothèque unique même lorsqu'il comporte plusieurs parties, de sorte que la navigation plus fine des "parties" se trouve ici sur les touches modifiées par Shift.
+- Avec le Navigateur de stations fermé, `Ctrl+Win+F3` / `Ctrl+Win+F4` (livre précédent / suivant) et `Ctrl+Win+Shift+F3` / `Ctrl+Win+Shift+F4` (partie précédente / suivante) font la même chose — consultez la section [Passer Les Éléments Avec Le Navigateur De Stations Fermé](#skipping-items-with-the-station-browser-closed).
+
+**Menu contextuel pour les entrées de bibliothèque:** Cliquez avec le bouton droit sur un livre, ou sélectionnez-le et appuyez sur la touche Applications / `Shift+F10`, pour ouvrir un menu avec:
+
+- **Lire le média** — démarre la lecture, comme avec  `Entrée`.
+- **Télécharger le livre** — télécharge chaque partie du livre ; consultez la section [Téléchargement de Livres audio](#downloading-audio-books) ci-dessous.
+- **Copier l'URL** — copie l'URL de la page du catalogue du livre dans le presse-papiers (la page du catalogue GETEM pour un livre GETEM, ou la page de détails archive.org pour un livre LibriVox ou un livre du Projet Gutenberg).
+- **Enregistrer le profil audio de ce livre** / **Effacer le profil audio** — consultez la section [Profil audio du Livre audio](#audio-book-audio-profile) ci-dessous.
+- **Supprimer de la bibliothèque** — supprime le livre de votre bibliothèque.
+
+Vous pouvez également marquer plusieurs livres à la fois et les supprimer tous ensemble — consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items) sous la section Favoris.
+
+### Lecture et Reprise
+
+Une œuvre en plusieurs parties est traitée comme un élément unique dans le lecteur, et non comme une ligne par partie  — de la même manière qu'un épisode de podcast est un élément unique, quelle que soit la manière dont il est diffusé. freeAudio se souvient de la dernière partie que vous avez écoutée et y reprend automatiquement la prochaine fois que vous lisez ce livre, même lors d'un redémarrage de NVDA.
+
+Lorsque chaque partie est terminée, freeAudio lance automatiquement la partie suivante du même livre — vous n'avez pas besoin de le sélectionner manuellement. Cela se produit même si la fenêtre du navigateur de stations est fermée à ce moment-là ; la partie "Maintenant en cours de lecture" apparaîtra dans la liste de la bibliothèque et sera resynchronisé automatiquement la prochaine fois que la fenêtre sera ouverte.
+
+La lecture est diffusée via un petit relais local plutôt que de télécharger d'abord la totalité de la partie, de sorte que l'écoute commence dès l'arrivée des premiers octets — le même comportement de démarrage immédiat que celui utilisé par les podcasts. Tous les contrôles habituels du lecteur (pause, volume, décalage temporel, vitesse de lecture, transposition, périphérique de sortie, etc.) fonctionnent sur un livre audio exactement comme elles le feraient sur une station ou un épisode de podcast.
+
+Comme pour les podcasts, la reprise d'un livre audio à partir de sa position de lecture est accompagnée d'un bref bruitage de chargement de cassette pendant que freeAudio recherche l'endroit où vous vous êtes arrêté — consultez la note **Reprise de l'effet sonore** dans la section [Détails de la Lecture du Podcast](#podcast-playback-details).
+
+### Profil audio du Livre audio
+
+Faites un clic droit sur un livre dans votre liste de bibliothèque et choisissez **Enregistrer le profil audio de ce livre** pour enregistrer le volume actuel, effets, gains EQ et/ou la vitesse de lecture en tant que profil lié à ce livre. Chaque fois que le livre (ou l'une de ses parties) est joué, les paramètres enregistrés sont appliqués automatiquement, remplaçant les valeurs par défaut globales. Cela fonctionne exactement de la même manière que le [Profil Audio du Podcast](#podcast-audio-profile) ci-dessus, y compris le même ensemble d'options d'enregistrement (volume, effets et/ou vitesse de lecture, dans n'importe quelle combinaison) et le même comportement de mise à jour partielle.
+
+**Effacer le profil audio** supprime le profil enregistré du livre ; cette option n'st activée que si le livre contient déjà un profil enregistré.
+
+### Téléchargement de Livres audio
+
+Sélectionnez un livre dans votre bibliothèque et choisissez **Télécharger le livre** dans son menu contextuel pour enregistrer chaque partie dans son propre dossier (nommé d'après le livre) dans votre dossier d'enregistrements (`Documents\freeAudio Recordings\` par défaut). Les fichiers sont numérotés afin que les parties soient toujours triées dans l'ordre d'écoute, quel que soit le nom que GETEM lui-même leur donne. NVDA annonce combien de parties ont été enregistrées une fois le téléchargement terminé ; si une partie échoue, la dernière erreur est signalée à côté du décompte.
+
+### Raccourcis Clavier Directs pour les Livres Audio
+
+Chaque livre de votre bibliothèque de livres audio — qu'il provienne de GETEM, LibriVox ou du Projet Gutenberg — est enregistré comme un script distinct dans la boîte de dialogue Gestes de commandes de NVDA, sous la catégorie **Livres audio freeAudio**, exactement comme pour les [Raccourcis Clavier Directs pour les Stations Favorites](#direct-keyboard-shortcuts-for-favourite-stations) et les [Raccourcis Clavier Directs pour les Entrées du Jukebox](#direct-keyboard-shortcuts-for-jukebox-entries). Vous pouvez assigner n'importe quel raccourci clavier à n'importe quel livre  et l'utiliser depuis n'importe où — sans avoir à ouvrir la fenêtre du navigateur au préalable. Aucun raccourci n'est assigné par défaut.
+
+Pour assigner un raccourci :
+
+1. Ouvrez le Menu NVDA → Préférences → Gestes de commandes.
+2. Développez la catégorie **Livres audio freeAudio**.
+3. Trouvez le livre par titre (chaque entrée est nommée "*titre* raccourci de lecture"), sélectionnez-le, puis appuyez sur **Ajouter**.
+4. Appuyez sur la combinaison de touches souhaitée et confirmez.
+
+Le raccourci démarre le livre immédiatement, reprenant à la partie que vous écoutiez en dernier; la position à l'intérieur de cette partie est rétablie de la même manière que lorsque vous jouez le livre depuis la liste de la bibliothèque. Si la liste des parties du livre n'a pas encore été récupérée, NVDA dit "Chargement *titre*" et la lecture commence dès qu'elle est prête (un livre GETEM nécessite vos identifiants enregistrés — consultez la section [Se connecter](#signing-in)). Lorsqu'une partie se termine, la suivante démarre automatiquement, avec ou sans le Navigateur de stations ouvert.
+
+Lorsque vous ajoutez un livre à la bibliothèque ou que vous en supprimez un, la catégorie **Livres audio freeAudio** est mise à jour immédiatement — il n'est pas nécessaire de rouvrir la boîte de dialogue Gestes de commandes pour que la modification apparaisse la prochaine fois que vous l'ouvrez. Si un livre est supprimé, son entrée disparaît et tout raccourci assigné est automatiquement supprimé par  NVDA; si un raccourci obsolète venait à être déclenché, NVDA indique que le livre audio n'est plus disponible dans la bibliothèque.
+
+### Stockage de Données de Livres audio
+
+Chaque source conserve son propre fichier de bibliothèque, même si elles sont affichées fusionnées dans l'onglet Livres audio. Votre bibliothèque GETEM (les livres ajoutés et leur progression d'écoute) est stockée dans `freeAudio_getem_library.json`, votre bibliothèque LibriVox est stockée séparément dans `freeAudio_librivox_library.json` et votre bibliothèque du Projet Gutenberg est stockée séparément dans `freeAudio_gutenberg_library.json` — tous les trois dans le dossier de configuration utilisateur de NVDA. Vos informations d'identification GETEM cryptées sont stockées séparément dans `freeAudio_getem_credentials.bin` au même emplacement et ne peuvent être déchiffrées que par le même compte d'utilisateur Windows qui les a enregistrées. LibriVox et le Projet Gutenberg ne possèdent pas de fichier d'identification, car aucun des deux ne requiert de compte.
+
+## Jukebox Local
+
+L'onglet **Jukebox** de freeAudio propose deux façons de lire les fichiers audio déjà présents sur votre ordinateur: rechercher des fichiers par nom sur tous les disques connectés ou créer une bibliothèque personnelle de fichiers et de dossiers. La lecture se déroule comme pour un podcast ou un livre audio — reprise automatique, avance/retour rapide par niveau, vitesse de lecture, transposition de la hauteur  et profils audio par élément fonctionnent exactement de la même manière.
+
+### Accéder à l'Onglet Jukebox
+
+Ouvrez le navigateur de stations avec `Ctrl+Win+R` et passez à l'onglet **Jukebox** avec `Ctrl+Tab` ou `Alt+8`, ou ouvrez-le directement depuis n'importe où avec le raccourci global `Ctrl+Win+U`. L'onglet est organisé en trois zones principales:
+
+1. **Rechercher sur les appareils** — un champ de texte qui recherche les fichiers audio sur tous les appareils connectés localement et prêts à l'emploi dont le nom contient le texte saisi. Appuyez sur `Entrée` pour lancer la recherche.
+2. **Résultats de la recherche** — liste affichant les fichiers correspondants une fois la recherche terminée. Elle reste masquée jusque-là, afin que l'onglet demeure vide lorsqu'aucune recherche n'est effectuée.
+3. **Jukebox et Morceaux** — liste permanente des éléments ajoutés, suivie de la liste des morceaux de l'entrée sélectionnée (pour une entrée de fichier, juste ce fichier ; pour une entrée de dossier, chaque fichier audio trouvé à l'intérieur). Une liste **Signets** suit la liste des morceaux et affiche les signets du morceau sélectionné — consultez la section [Signets](#bookmarks).
+
+Les boutons **Ajouter un fichier…**, **Ajouter un dossier…**, **Supprimer**, **Exporter le jukebox…** et **Importer le jukebox…** se trouvent en bas de l'onglet.
+
+### Recherche de Fichiers sur les Appareils
+
+Saisissez une partie d'un nom de fichier dans le champ **Rechercher sur les appareils** et appuyez sur `Entrée`. freeAudio recherche sur tous les appareils connectés localement — disques durs, clés USB, cartes mémoire, lecteurs réseau mappés — à la recherche de fichiers audio (`.mp3`, `.wav`, `.ogg`, `.flac`, `.m4a`, `.m4b`, `.aac`, `.wma`, `.opus`, et plusieurs autres) dont le nom de fichier contient le texte recherché. La recherche s'effectue en arrière-plan, NVDA continue donc de fonctionner sans problème. Les lecteurs réseau sont ignorés par défaut, car la recherche sur un partage réseau peut prendre plusieurs minutes, voire se bloquer si le partage est inaccessible. Pour les inclure, activez **Inclure les lecteurs réseau lors de la recherche dans le jukebox** dans les paramètres.
+
+- **Espace** sur un résultat de recherche pour le prévisualiser — et lancez la lecture avec le lecteur habituel. Appuyez de nouveau sur **Espace** sur le même fichier pour arrêter l'aperçu.
+- **Entrée** sur un résultat de recherche pour l'ajouter à votre jukebox.
+- Le menu contextuel (Touche Applications / `Shift+F10`, ou clic droit) propose les deux mêmes actions: **Aperçu** / **Arrêter l'aperçu** et **Ajouter au Jukebox**.
+- Lancer une nouvelle recherche annule toutes les recherches en cours, ainsi, une recherche lente sur un disque de grande capacité n'interrompt jamais une nouvelle recherche.
+
+### Créer Votre Jukebox
+
+La liste du Jukebox est votre bibliothèque personnelle permanente. Vous pouvez y ajouter deux types d'éléments:
+
+- **Ajouter un fichier…** — ouvre un sélecteur de fichiers vous permettant d'ajouter un ou plusieurs fichiers audio. Tous les fichiers sélectionnés sont ajoutés simultanément.
+- **Ajouter un dossier…** — ouvre un sélecteur de dossiers qui vous permet de sélectionner plusieurs dossiers à la fois. Chaque fichier audio du dossier sélectionné, y compris ses sous-dossiers, est considéré comme un des **morceaux** de ce dossier. Chaque dossier est ajouté comme une entrée unique dans votre liste du Jukebox ; les fichiers qu'il contient s'affichent dans la liste des morceaux lorsque le dossier est sélectionné. NVDA annonce le nombre de dossiers ajoutés une fois le sélecteur fermé.
+- **Supprimer** — supprime l'entrée actuellement sélectionnée de votre Jukebox. La suppression d'une entrée de dossier ne supprime aucun fichier sur le disque ou l'appareil ; elle oublie tout simplement le dossier. Vous pouvez également marquer plusieurs entrées simultanément et les supprimer toutes ensemble — consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items) sous la section Favoris.
+
+Votre liste du Jukebox est automatiquement enregistrée et conservée même après le redémarrage de NVDA. Le contenu des dossiers est analysé à la demande et mis en cache, ce qui rend l'ajout d'un dossier instantané, même pour les collections volumineuses — une analyse complète est effectuée lors de la première sélection du dossier. Si vous ajoutez des fichiers à un dossier en dehors de freeAudio, utilisez l'élément **Réanalyser le dossier** du menu contextuel du dossier pour les inclure.
+
+### Ajout d'Éléments depuis l'Explorateur Windows
+
+Deux autres commandes, disponibles uniquement lorsqu'un fichier ou un dossier est focalisé dans la liste des fichiers de l'Explorateur Windows (la liste Détails/Icônes — et non la barre d'adresse, l'arborescence des dossiers, le ruban ou la zone de recherche), vous permettent de passer complètement outre les boîtes de dialogue Ajouter un fichier…/Ajouter un dossier… mentionné ci-dessus :
+
+- **Lire le fichier focalisé avec freeAudio** — permet de lire directement le fichier audio sélectionné, sans qu'il soit nécessaire qu'il figure déjà dans votre liste Jukebox. Fonctionne uniquement avec les fichiers ; si vous l'utilisez avec un dossier, vous devrez ajouter ce dossier au Jukebox.
+- **Ajouter l'élément focalisé au jukebox freeAudio** — ajoute le fichier ou le dossier sélectionné à votre liste Jukebox, exactement comme si vous aviez utilisé **Ajouter un fichier…** ou **Ajouter un dossier…** mentionné ci-dessus.
+
+Aucune de ces commandes n'a de touche par défaut assignée. Assignez-en une depuis le menu NVDA → Préférences → Gestes de commandes → freeAudio **lorsque vous êtes focalisée dans une fenêtre de l'Explorateur de fichiers**.
+
+### Lecture depuis le Jukebox
+
+- **Entrée** sur une entrée du Jukebox pour la lire directement: s'il s'agit d'une entrée de fichier, le fichier lui-même ; pour une entrée de dossier, le dossier est lu dans l'ordre, à partir du morceau sélectionné dans la liste des morceaux ou, si aucun n'est sélectionné, à partir du dernier morceau lu (le premier morceau s'il n'a jamais été lu). Lorsqu'un morceau se termine, le suivant démarre automatiquement.
+- **Espace** sur une entrée du Jukebox pour mettre la lecture en pause s'il y a quelque chose  déjà en cours de lecture ; sinon, l'entrée focalisée est lue.
+- **Entrée** ou **Espace** sur la liste des morceaux pour lire le morceau focalisé. **Espace** pause d'abord s'il y a quelque chose  déjà en cours de lecture. Un morceau lancé de cette manière se lit seul et ne passe pas au morceau suivant lorsqu'il se termine; utilisez `F3` / `F4` ou lisez directement l'entrée du dossier pour une lecture continue.
+- **F3 / F4** dans l'onglet Jukebox pour se déplacer entre les morceaux dans l'entrée actuellement sélectionnée et lancer la lecture immédiatement. Dans une entrée de dossier, le morceau est lu comme faisant partie du dossier, les pistes suivantes démarrent automatiquement lorsqu'elle se termine.
+- **Shift+F3 / Shift+F4** pour se déplacer entre les entrées de la liste de Jukebox (fichiers et dossiers), de la même manière que ces touches permettent de se déplacer entre les flux dans l'onglet Podcasts.
+- **Ctrl+← / Ctrl+→** lorsque la liste des entrées ou des morceaux est focalisé remplit la même fonction que F3/F4 dans la liste des morceaux — morceau précédent/suivant, avec continuation automatique dans un dossier.
+- Avec le Navigateur de stations fermé, `Ctrl+Win+F3` / `Ctrl+Win+F4` (morceau précédent / suivant) et `Ctrl+Win+Shift+F3` / `Ctrl+Win+Shift+F4` (entrée précédente / suivante) font de même — consultez la section [Passer Les Éléments Avec Le Navigateur De Stations Fermé](#skipping-items-with-the-station-browser-closed).
+
+### Détails de Lecture du Jukebox
+
+Chaque morceau lue  depuis le Jukebox bénéficie d'un traitement du médias local complet:
+
+- **Reprendre:** freeAudio mémorise votre position dans chaque morceau, la sauvegarde lors de la pause et périodiquement pendant la lecture, et reprend à partir de ce point quand vous y rejouez — même après le redémarrage de NVDA.
+- **Morceau suivant automatique:** lorsqu'un morceau lu dans un dossier se termine, le morceau suivant dans ce dossier démarre automatiquement, que le navigateur de stations soit ouvert ou non, et ce, même si vous passez au morceau suivant avec  `F3` / `F4` ou `Ctrl+Win+F3` / `Ctrl+Win+F4`. Une fois le dernier morceau terminé, la position enregistrée dans le dossier est effacée et la lecture reprendra au premier morceau lors de la prochaine écoute. Appuyer manuellement sur suivant sur le dernier morceau ne réinitialise pas cette position.
+- **Recherche par niveaux:** `Ctrl+Win+J` / `Ctrl+Win+K` permet de rechercher dans le morceau en utilisant la même échelle de pulsation/maintenir enfoncée comme pour les podcasts et les livres audio — maintenir pour 5 secondes par répétition, une pulsation pour 12 secondes, deux pulsations pour 1 minute, trois pulsations ou plus pour 5 minutes. `Ctrl+Win+Alt+J` / `Ctrl+Win+Alt+K` recherche exactement 1 seconde — consultez la section [Recherche Précise (1 Seconde)](#fine-seeking-1-second).
+- **Vitesse de lecture:** `Ctrl+Win+Shift+J` / `Ctrl+Win+Shift+K` ajuste la vitesse par incréments de 0.1x depuis 0.5x à 2.0x, en conservant la hauteur.
+- **Transposition:** `Shift+Win+J` / `Shift+Win+K` modifie la hauteur sans changer la vitesse — consultez la section [Transposition (Changement de la Hauteur)](#transpose-pitch-shift).
+
+
+> **Remarque:** La mémoire tampon de décalage temporel (utilisée pour rembobiner la radio en direct) **n'est pas** initialisée pour les morceaux du Jukebox — ces derniers étant déjà des fichiers locaux consultables, la capture en arrière-plan est inutile et consommerait inutilement de l'espace disque. Le retour en arrière et avance rapide fonctionnent toujours car ils agissent directement sur le fichier en cours de lecture.
+
+### Renommer les Entrées du Jukebox
+
+Choisissez **Renommer…** dans le menu contextuel d'une entrée du Jukebox  (Touche Applications / `Shift+F10`) pour lui attribuer un nom d'affichage personnalisé. Ce nom personnalisé remplace le nom du fichier ou du dossier dans la liste du Jukebox et est inscrit dans la ligne `#EXTINF` lors de l'exportation de l'entrée au format M3U (consultez la section [Exportation et Importation de la Bibliothèque du Jukebox](#exporting-and-importing-the-jukebox-library) ci-dessous). Laissez le champ vide pour effacer le nom personnalisé et rétablir le nom d'origine du fichier ou du dossier.
+
+### Organiser le Jukebox en Groupes
+
+Les entrées du Jukebox peuvent appartenir à un groupe, indiqué par le suffixe "— Groupe" après le nom de l'entrée dans la liste, exactement comme pour [Organiser les Favoris en Groupes](#organising-favourites-into-groups):
+
+- Marquez une ou plusieurs entrées avec le `.` (consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items) ci-dessus), puis choisissez **Assigner au groupe…** dans le menu contextuel et saisissez un nom de groupe. Laissez le champ vide pour effacer les entrées marquées de leur groupe à la place. Si rien n'est marqué, la commande s'applique à l'entrée actuellement sélectionnée.
+- Le champ Filtrer situé au-dessus de la liste du Jukebox permet également de filtrer par nom de groupe, comme pour les Favoris.
+
+### Réorganiser le Jukebox
+
+Avec une entrée sélectionnée dans la liste du Jukebox, appuyez sur la `virgule` pour entrer en mode déplacement — vous entendrez un bip. Accédez à la position cible avec les touches fléchées, puis appuyez à nouveau sur la `virgule`. L'entrée est placée à l'emplacement choisi et la nouvelle organisation est immédiatement enregistrée. En appuyant à nouveau sur la `virgule` à la même position annule le déplacement.
+
+### Exportation et Importation de la Bibliothèque du Jukebox
+
+L'onglet Jukebox comprend deux boutons pour sauvegarder et restaurer votre bibliothèque, en bas de l'onglet:
+
+**Exporter le jukebox…** — enregistre l'intégralité de votre liste Jukebox dans un fichier. Une boîte de dialogue d'enregistrement vous permet de choisir entre deux formats:
+
+- **JSON** (`.json`) — une sauvegarde complète qui conserve le chemin d'accès, le nom personnalisé, le groupe et le profil audio enregistré de chaque entrée. Recommandé pour restaurer votre bibliothèque ultérieurement ou la transférer sur un autre ordinateur.
+- **Liste de lecture M3U** (`.m3u`) — un format plus léger, compatible avec la plupart des lecteurs multimédias, qui indique le chemin d'accès et le nom personnalisé (le cas échéant) de chaque entrée dans la ligne `#EXTINF` précédente. Les groupes et les profils audio ne sont pas inclus dans le format M3U, la restauration à partir de ce format entraîne donc la perte de ce  détail.
+
+**Importer le jukebox…** — charge les entrées à partir d'un fichier JSON ou M3U précédemment exporté. Après avoir sélectionné le fichier, il vous est demandé comment ajouter les entrées:
+
+- **OUI (Fusionner)** — ajoute les entrées importées à votre bibliothèque existante sans supprimer les entrées actuelles. Les entrées dont le chemin correspond à une entrée déjà présente dans votre bibliothèque ne sont pas ajoutées deux fois.
+- **Non (Remplacer)** — efface entièrement votre liste Jukebox actuelle et la remplace par le contenu du fichier importé.
+- **Annuler** — retourne au navigateur sans effectuer de modifications.
+
+### Raccourcis Clavier Directs pour les Entrées du Jukebox
+
+Chaque entrée de votre liste Jukebox est enregistrée comme un script distinct dans la boîte de dialogue Gestes de commandes de NVDA, sous la catégorie **Jukebox freeAudio**, exactement comme pour les [Raccourcis Clavier Directs pour les Stations Favorites](#direct-keyboard-shortcuts-for-favourite-stations). Vous pouvez assigner n'importe quel raccourci clavier à n'importe quelle entrée et l'utiliser depuis n'importe où — sans avoir à ouvrir la fenêtre du navigateur au préalable.
+
+Pour assigner un raccourci :
+
+1. Ouvrez le Menu NVDA → Préférences → Gestes de commandes.
+2. Développez la catégorie **Jukebox freeAudio**.
+3. Trouvez l'entrée par son nom, sélectionnez-la et appuyez sur **Ajouter**.
+4. Appuyez sur la combinaison de touches souhaitée et confirmez.
+
+Le raccourci démarre l'entrée immédiatement — pour un fichier, le fichier lui-même ; pour une entrée de dossier, le morceau où le dossier s'est arrêté (son premier morceau s'il n'a jamais été lu), les morceaux suivants sont ensuite lus automatiquement, même si le Navigateur de stations est fermé. Si l'entrée est ultérieurement retiré de votre Jukebox, son entrée disparaît de la catégorie et tout raccourci assigné est automatiquement supprimé par NVDA. Lorsqu'une nouvelle entrée est ajoutée, elle apparaît immédiatement dans la catégorie — il n'est pas nécessaire de rouvrir la boîte de dialogue Gestes de commandes.
+
+## Signets
+
+Les signets vous permettent de marquer un point dans une **partie du livre audio**, un **épisode de podcast** ou un **morceau du jukebox** et d'y revenir plus tard. Ils ne sont pas disponibles pour les stations de radio en direct, qui n'ont pas de position fixe à laquelle revenir.
+
+### Ajout d'un Signet
+
+- Appuyez sur **`Ctrl+Win+F12`** depuis n'importe où dans Windows, ou sur **`F12`** lorsque le Navigateur de stations est actif, pour ajouter un signet à la position de lecture actuelle.
+- NVDA annonce le nom et la position du signet, par exemple "Signet ajouté: Signet 2, 12:30".
+- Si aucune lecture n'est en cours ou si une station de radio est diffusée en direct, freeAudio vous en informe et aucun signet n'est ajouté.
+
+Le nom par défaut d'un signet correspond à sa **position ordinale** entre les signets de l'élément, du plus ancien au plus récent: "Signet 1", "Signet 2", etc. Le numéro étant lié à la position dans l'élément, l'ajout d'un signet antérieur renumérote les signets suivants qui conservent leur nom par défaut. Les signets que vous avez renommés conservent leur nom d'origine.
+
+### La Liste des Signets
+
+Chaque onglet de Podcasts, Livres audio et Jukebox possède une liste de **Signets** située juste à côté de l'élément correspondant:
+
+- **Podcasts** — directement sous la liste des épisodes, elle affiche les signets de l'épisode sélectionné.
+- **Livres audio** — directement sous la liste de la bibliothèque, elle affiche les signets de chaque partie du livre sélectionné. Lorsqu'un livre comporte plusieurs parties, chaque ligne commence par le titre de la partie.
+- **Jukebox** — directement sous la liste des morceaux, elle affiche les signets du morceau sélectionné.
+
+Chaque ligne affiche le nom et la position du signet. Un marqueur **[texte]** ou **[note vocale]**  est ajouté lorsque le signet contient une note textuelle ou vocale, et **(marqué)** lorsqu'il est marqué avec le `.`. La liste suit la sélection ci-dessus et se met à jour lorsque vous ajoutez un signet avec `Ctrl+Win+F12` lorsque la fenêtre est ouverte.
+
+Lorsqu'une liste de signets a le focus, les touches de lecture de l'onglet ci-dessus fonctionnent également  là: `←` / `→` pour rechercher, `Shift+←` / `Shift+→` pour transposer, `Page précédente` / `Page suivante` pour modifier la vitesse de lecture, `Ctrl+←` / `Ctrl+→` pour passer à l'épisode, au livre ou au morceau précédent ou suivant, et `Alt+←` / `Alt+→` pour rechercher par 1 seconde.
+
+| Touche | Action |
+|---|---|
+| `.` | Marque ou démarque le signet focalisé. Consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items). |
+| `Entrée` | Lire à partir du signet focalisé. |
+| `Espace` | Met en pause si quelque chose est en cours de lecture; sinon, lit à partir du signet focalisé. |
+| `Supprimer` | Supprime tous les signets marqués, ou celui focalisé si aucun n'est marqué. Une boîte de dialogue de confirmation s'affiche au préalable. |
+| Touche Applications / `Shift+F10` | Ouvre le menu contextuel du signet. |
+
+### Menu Contextuel du Signet
+
+- **Lire depuis le signet** — si l'élément est déjà chargé, la lecture reprend à partir du signet; sinon, l'élément commence à lire à partir de cette position.
+- **Renommer…** — attribue un nom personnalisé au signet. Laissez le champ vide pour rétablir le nom par défaut.
+- **Supprimer la sélection** — supprime les signets marqués, ou celui focalisé si aucun n'est marqué.
+- **Ajouter ou modifier du texte…** — ouvre un champ multiligne pour une note. Laissez le champ vide pour supprimer le texte.
+- **Ajouter une note vocale…** — ouvre une boîte de dialogue qui lance l'enregistrement via le microphone par défaut dès son apparition. Appuyez sur **Arrêter et Enregistrer** pour associer l'enregistrement au signet, ou sur **Annuler** pour l'écarter. L'ajout d'une nouvelle note vocale remplace la précédente.
+- **Effacer les notes** — supprime la note textuelle et la note vocale du signet focalisé. Activé uniquement lorsque le signet contient une note.
+- **Répéter entre les signets marqués** — consultez ci-dessous. Activé lorsqu'au moins deux signets sont marqués.
+- **Arrêter la répétition** — désactive le mode répétition. Activé lorsqu'une répétition est active.
+
+### Que Se Passe-t-il Lorsque la Lecture Atteint un Signet
+
+Pendant la lecture normale, lorsque la position atteint un signet, freeAudio émet **deux bips rapides**. Si le signet ne contient aucune note, la lecture continue.
+
+Si le signet contient une note textuelle et/ou vocale, la lecture est **mise en pause**, le texte est lu par le synthétiseur de NVDA et la note vocale est  diffusée, puis la lecture **reprend là où elle s'était arrêtée**. Si vous arrêtez la lecture ou lancez  autre chose pendant que la note est en cours de lecture, la lecture ne reprend pas.
+
+Les signets sont détectés pendant la lecture normale. Rechercher ou dépasser un signet ne le déclenche pas.
+
+### Répéter la Section Entre les Signets
+
+Marquez deux signets ou plus du **même élément** avec le `.`, puis choisissez **Répéter entre les signets marqués**. La lecture se positionne sur le premier signet marqué et boucle entre le premier et le dernier signet marqué, et NVDA annonce les deux positions. C'est utile pour revoir un passage difficile à suivre, une expression linguistique ou un morceau de musique que vous travaillez. Choisissez  **Arrêter la répétition** pour revenir à la lecture normale. La répétition n'est pas enregistrée entre les sessions, Et si un élément différent commence à jouer, l'intervalle de répétition est ignoré et écarté après environ 20 secondes.
+
+### Stockage des Données du Signet
+
+Les signets sont stockés dans `freeAudio_bookmarks.json` dans le dossier de configuration utilisateur NVDA, et les notes vocales sont stockées sous forme de fichiers `.wav` dans le dossier `freeAudio_bookmark_audio` situé à côté. Les deux peuvent être sauvegardés ou transférés sur un autre ordinateur. Supprimer un signet entraîne également la suppression de son fichier de note vocale. Tous les signets et notes vocales peuvent être supprimés simultanément via l'élément **Signets** de la boîte de dialogue de nettoyage — consultez la section [Nettoyage: Réinitialiser les Paramètres et Supprimer les Données Enregistrées](#clean-up-reset-settings-and-delete-saved-data).
+
+Chaque signet est associé à la  touche de reprise propre à l'élément — l'URL de l'épisode, l'URL du catalogue stable de la partie du livre audio ou le chemin d'accès au fichier du morceau du jukebox. Un fichier du jukebox déplacé ou renommé en dehors de freeAudio est donc considéré comme un élément différent et ses anciens signets ne sont plus affichés.
+
+## Transposition (Changement de la Hauteur)
+
+La transposition modifie **la hauteur** du morceau en cours de lecture, vers le haut ou vers le bas, sans en changer la **vitesse** — c'est l'inverse de l'effet de "grésillement" que l'on obtient en accélérant une piste. C'est utile pour adapter la tessiture naturelle d'un narrateur particulier, transposer une musique dans une tonalité plus agréable, ou simplement ajuster un enregistrement pour qu'il soit plus confortable à l'écoute.
+
+La transposition est disponible pour les **podcasts**, les **livres audio** et les **morceaux du jukebox** — le même "local, recherche, médias avec capacité de tempo" auxquels les raccourcis de vitesse de lecture s'appliquent déjà. Ne sont pas disponibles pour les stations de radio en direct, puisqu'ils n'ont pas de hauteur fixe qui puisse être modifiée.
+
+- **`Shift+Win+K`** — Augmente la hauteur d'un pas.
+- **`Shift+Win+J`** — Diminue la hauteur d'un pas.
+
+Chaque pas correspond à **un huitième de ton entier** — soit, **0.25 demi-tons** (un ton entier équivaut à 2 demi-tons, soit, 8 pas constituent un ton entier, et 48 pas constituent une octave). La gamme est de **−12.00 à +12.00 demi-tons**, c'est-à-dire une octave complète vers le haut ou vers le bas. NVDA annonce la nouvelle valeur après chaque pas, par exemple, "**+1.25 demi-tons**" ; lors du retour à 0.0 il annonce  "**Hauteur normale**".
+
+La transposition est mémorisée pour tous les morceaux, de la même manière que la vitesse de lecture: la définir une fois pendant la lecture d'un  morceau signifie que le prochain morceau avec capacité de tempo que vous jouerez commencera par le même changement, sauf si le profil audio enregistré propre à ce morceau le remplace. La lecture d'un morceau sans valeur de transposition enregistrée réinitialise le changement à 0.0 (Hauteur normale), tout comme la même règle s'applique déjà à la vitesse.
+
+## Morceaux aimés
+
+Lorsque l'option **Enregistrer les morceaux aimés dans un fichier texte** est activée, les informations sur la piste copiées dans le presse-papiers en appuyant trois fois sur `Ctrl+Win+I` sont également ajoutées ligne par ligne à `Documents\freeAudio Recordings\likedSongs.txt`.
+
+Sur les stations qui diffusent des métadonnées ICY, le titre de la piste et l'artiste sont directement enregistrés. Sur les stations sans métadonnées ICY, le résultat de la reconnaissance Shazam est enregistré dans le même fichier — les deux sources partagent la même liste. Le fichier est créé automatiquement s'il n'existe pas ; chaque entrée est ajoutée à la fin du fichier et les entrées précédentes ne sont jamais supprimées.
+
+## Onglet Morceaux aimés
+
+L'onglet **Morceaux aimés** dans le navigateur de stations affiche toutes les pistes enregistrées dans `likedSongs.txt`. La liste est automatiquement rechargée depuis le fichier à chaque ouverture de l'onglet. Cliquez avec le bouton droit sur un morceau, ou sélectionnez-le et appuyez sur la touche Applications / `Shift+F10`, pour ouvrir un menu contextuel avec les mêmes actions décrites ci-dessous.
+
+Un champ **Filtrer** au-dessus de la liste vous permet de réduire les pistes affichées en temps réel. Saisissez n'importe quelle partie d'un titre d'un morceau ou du nom d'un artiste et la liste se met à jour instantanément à chaque frappe. NVDA annonce le nombre de résultats correspondants après chaque modification. Appuyez sur la flèche `Bas` depuis le champ Filtrer pour déplacer le focus directement vers la liste.
+
+La sélection d'une piste dans la liste permet les actions suivantes:
+
+- **Lire sur Spotify:** Essaie d'ouvrir directement l'application de bureau Spotify. Si l'application n'est pas installée, revient au site Web Spotify et commence automatiquement à lire le premier résultat.
+- **Lire sur YouTube (`Alt+O`):** Recherche sur YouTube la piste sélectionnée et ouvre les résultats dans le navigateur par défaut.
+- **Afficher les Paroles:** Récupère et affiche les paroles de la piste sélectionnée. Les paroles sont récupérées depuis [lrclib.net](https://lrclib.net) (gratuit, sans compte requis). Un court message "Récupération des paroles…" est annoncé pendant que la recherche s'exécute en arrière-plan. Si des paroles sont trouvées, elles s'ouvrent dans une boîte de dialogue en lecture seule où vous pouvez les lire avec NVDA et les copier dans le presse-papiers. Si aucune parole n'est trouvée, NVDA l'annonce. Le bouton est temporairement désactivé pendant une récupération en cours pour éviter les requêtes en double.
+- **Supprimer (`Alt+M`):** Supprime la piste sélectionnée de `likedSongs.txt` et met à jour la liste. La touche `Supprimer` déclenche également ce bouton lorsque la liste est focalisé. Vous pouvez également  marquer plusieurs morceaux à la fois et les supprimer tous ensemble — consultez la section [Marquage et Suppression de Plusieurs Éléments](#marking-and-removing-multiple-items) sous la section Favoris.
+- **Rafraîchir (`Alt+E`):** Recharge la liste à partir du fichier.
+
+Les boutons Spotify, YouTube, Afficher les Paroles et Supprimer ne sont activés que lorsqu'une vraie piste est sélectionnée dans la liste.
+
+### Service de Paroles
+
+freeAudio utilise [lrclib.net](https://lrclib.net) pour récupérer les paroles — une base de données gratuite et ouverte ne nécessitant ni clé API ni compte. Le processus de recherche analyse la chaîne de piste stockée dans `likedSongs.txt` et essaie des requêtes progressivement plus larges jusqu'à trouver des paroles :
+
+1. Correspondance exacte avec le nom de l'artiste complet et le titre nettoyé (les suffixes parasites tels que "Remastered", "Live" ou les balises d'année sont supprimés avant la recherche).
+2. Correspondance exacte avec le nom de l'artiste complet et le titre original (si le nettoyage l'a modifié).
+3. Correspondance exacte avec seulement le premier nom de l'artiste et le titre nettoyé (pour les chaînes multi-artistes telles que "Artist A & Artist B").
+4. Recherche approximative avec le premier nom de l'artiste et le titre nettoyé.
+5. Recherche approximative avec la chaîne de piste brute en dernier recours.
+
+Quand des paroles en texte brut sont disponibles, elles sont affichées telles quelles. Quand seules des paroles LRC synchronisées dans le temps sont disponibles, les horodatages sont supprimés et le texte brut est affiché. Les pistes instrumentales sont signalées comme introuvables.
+
+## Paramètres
+
+Les options suivantes peuvent être configurées à partir de NVDA Menu → Préférences → Paramètres → freeAudio:
+
+| Option | Description |
+|---|---|
+| Voix de changement de piste | Choisissez si les changements de piste annoncés automatiquement sont prononcés à l'aide du synthétiseur NVDA ou d'une voix SAPI5 sélectionnée. |
+| Voix SAPI5 | Lorsque **Voix de changement de piste** est réglée sur SAPI5, permet de choisir la voix SAPI5 installée utilisée pour annoncer les changements de piste. La liste est alimentée en arrière-plan à partir des voix installées sur le système. |
+| Périphérique de sortie audio | Définit  le périphérique de sortie audio pour la lecture de la radio. La liste comprend tous les périphériques sur le système BASS-compatible plus une option "valeur système par défaut". Les modifications sont appliquées immédiatement lors de l'enregistrement ; si le périphérique sélectionné est déconnecté, l'extension revient automatiquement au valeur système par défaut et annonce le changement. |
+| Mode de rafraîchissement du périphérique audio | Contrôle la manière dont freeAudio actualise les numéros de périphérique de sortie de BASS. Le mode **Fiable** (par défaut) sonde les appareils en direct et suit les modifications Bluetooth/USB avec plus de précision, mais peut ralentir légèrement les modifications des appareils. Le mode **Rapide** utilise la liste actuelle des périphériques de BASS et est plus rapide, mais les numéros de périphériques peuvent rester obsolètes jusqu'au redémarrage de BASS ou de NVDA. |
+| Volume | Définit le volume au démarrage de l'extension (0–100). Modifications apportées pendant la lecture avec `Ctrl+Win+↑` peut augmenter le volume jusqu'à 200, mais le volume initial enregistré ici est limité à 100. |
+| Effets audio | Définit quels effets (Chœur, Compression, Distorsion, Echo, Flanger, Gargle, Réverbération et les trois renforcements EQ) sont actifs au démarrage de NVDA ou lorsqu'une station commence à jouer. Plusieurs effets peuvent être cochés en même temps, comme dans la liste Effets du navigateur de stations. |
+| Gain EQ (Bass / Treble / Vocal) | Définit le niveau de gain en dB pour chaque bande EQ (−15 à +15). Ces valeurs s'appliquent lorsque l'effet EQ correspondant est actif et sont enregistrées globalement. Les remplacements par station peuvent être stockés à l'aide du bouton **Enregistrer le profil audio** dans l'onglet Favoris. |
+| Transition de changement de station | Contrôle le comportement de transition lors de la commutation entre les **stations de radio en direct**. **Coupe instantanée** (par défaut) arrête la station précédente juste avant le début de la nouvelle. **Fondu enchaîné court (1 seconde)** et **Fondu enchaîné normal (2 secondes)** démarre immédiatement la nouvelle station sans interruption, puis faites disparaître progressivement la station précédente en arrière-plan une fois que le nouveau flux est confirmé actif. **Effet sonore de syntonisation de station** arrête immédiatement la station précédente et diffuse un effet sonore de syntoniseur de station avant que la nouvelle ne démarre. N'a aucun effet et aucun impact sur les performances lorsqu'il est réglé sur Coupe instantanée. Ne s'applique pas aux podcasts ni aux livres audio — leur reprise déclenche toujours la lecture d'un bref effet sonore de cassette, quel que soit ce réglage ; consultez la section [Détails de la Lecture du Podcast](#podcast-playback-details). |
+| Reprendre la dernière station au démarrage de NVDA | Lorsqu'elle est activée, la dernière station écoutée redémarre automatiquement à chaque démarrage de NVDA. |
+| Annoncer automatiquement les changements de piste (métadonnées ICY) | Lorsqu'il est activé, NVDA lit automatiquement le nouveau nom de la piste à chaque fois qu'il change sur une station qui diffuse des métadonnées ICY. Le premier morceau est également annoncé immédiatement lors du passage à une nouvelle station. Désactivé par défaut. |
+| Notifications muettes | Lorsqu'il est activé, NVDA n'annonce pas les changements de station, changements d'état de lecture (lecture, pause, arrêt) ou événements d'enregistrement (démarré, arrêté, terminé). Les messages d'erreur, les commentaires sur les favoris, les résultats de la reconnaissance musicale et les notifications de mise à jour ne sont pas affectés. Peut également être activé à la volée via un geste de commande non assigné. Désactivé par défaut. |
+| Afficher les messages freeAudio sur l'afficheur braille | Lorsqu'elle est activée, freeAudio envoie également ses notifications directement sur l'afficheur braille. Ceci est utile pour les titres des pistes, les changements de station, l'état de lecture et les changements de volume. Désactivé par défaut. |
+| Activer la mémoire tampon de décalage temporel (retour en arrière sur la radio en direct) | Active ou désactive les contrôles de rembobinage (`Ctrl+Win+J`/`Ctrl+Win+K`) et augmente la capture en arrière-plan de ~45 secondes jusqu'à la **Durée de la mémoire tampon de décalage temporel**. Une petite capture en arrière-plan de la station en cours de lecture s'exécute toujours, même lorsqu'elle est désactivée — consultez la note dans la section **Décalage temporel (retour en arrière sur la radio en direct)** ci-dessous. Peut également être basculée instantanément avec `Ctrl+Win+T`. Désactivée par défaut — consultez la section **Décalage temporel (retour en arrière sur la radio en direct)** ci-dessous pour plus de détails. Cela n'a aucun effet sur les podcasts et les livres audio. |
+| Enregistrer les morceaux aimés dans un fichier texte | Lorsqu'il est activé, les informations de piste sont copiées dans le presse-papiers en appuyant sur `Ctrl+Win+I` trois fois est également ajouté à `Documents\freeAudio Recordings\likedSongs.txt`. Si aucune métadonnée ICY n'est disponible, le résultat de la reconnaissance Shazam est enregistré dans le même fichier. Désactivé par défaut. |
+| Lorsque Ctrl+Win+P est appuyé sans lecture active | Détermine ce qui se passe lorsque ce raccourci est appuyé et que rien n'est joué: démarrer la dernière station ou ouvrir la liste des favoris. |
+| Durée de la mémoire tampon de décalage temporel | Définit la longueur maximale du tampon de rembobinage. Les options vont de  10 minutes à 5 heures. Les tampons plus longs consomment plus d'espace disque temporaire. |
+| Lorsque Ctrl+Win+P est appuyé deux fois | Sélectionne ce qui se passe lorsque le raccourci est appuyé deux fois de suite rapidement: ne rien faire, ouvrir la liste des favoris, ouvrir l'onglet d'enregistrement ou ouvrir l'onglet minuterie. Lorsque "Ne rien faire " est sélectionné, la première pulsation répond instantanément sans délai. |
+| Lorsque Ctrl+Win+P est appuyé trois fois | Sélectionne ce qui se passe lorsque le raccourci est appuyé trois fois de suite rapidement: ne rien faire, ouvrir la liste des favoris, ouvrir la recherche de stations, ouvrir l'onglet d'enregistrement ou ouvrir l'onglet minuterie. |
+| Rechercher automatiquement les mises à jour au démarrage | Lorsqu'elle est activée, une vérification de mise à jour en arrière-plan s'exécute à chaque démarrage de NVDA; vous êtes averti si une nouvelle version est trouvée. Lorsqu'il est désactivé, les contrôles automatiques s'arrêtent mais les contrôles manuels restent disponibles. |
+| Vérifier les mises à jour maintenant | Ce bouton permet de rechercher immédiatement une nouvelle version, même lorsque les vérifications automatiques sont désactivées. Pendant la vérification, le bouton affiche "Vérification en cours...". |
+| Chemin ffmpeg.exe | Chemin d'accès au ffmpeg.exe utilisé pour la reconnaissance musicale. S'il est laissé vide, un ffmpeg.exe dans le dossier d'extension est utilisé automatiquement. |
+| Dossier des enregistrements | Définit le dossier dans lequel les fichiers enregistrés sont sauvegardés. Si laissé vide, l'emplacement par défaut `Documents\freeAudio Recordings\` est utilisé. Un bouton Explorer le dossier vous permet de sélectionner le dossier de manière interactive. Les modifications prennent effet immédiatement après l'enregistrement. |
+| Modules | Une liste de contrôle des parties optionnelles de freeAudio: **Podcasts**, **Livres audio** et **Jukebox**. Les trois sont activés par défaut. En décochant une, supprime son onglet du Navigateur de stations et ses commandes de la boîte de dialogue Gestes de commandes de NVDA, sans supprimer quoi que ce soit que vous ayez enregistré là (abonnements, bibliothèque, liste du Jukebox); En le recochant, tout est rétabli. Les modifications seront appliquées à la prochaine ouverture du Navigateur de stations. |
+| Inclure les lecteurs réseau lors de la recherche dans le jukebox | Lorsqu'elle est activée, **Rechercher sur les appareils** du Jukebox analyse également les lecteurs réseau. Désactivée par défaut, car la recherche sur un partage réseau peut prendre plusieurs minutes, voire se bloquer si le partage est inaccessible. |
+| Sources livre audio | Une liste de contrôle permet de sélectionner les sources de livres audio (**GETEM**, **LibriVox**, **Projet Gutenberg**) sont recherchés et affichés dans l'onglet Livres audio. Les trois sont activés par défaut. Démarquer une source masque ses livres dans les résultats de recherche fusionnés et dans la liste de la bibliothèque, sans supprimer les éléments que vous y avez déjà ajoutés — consultez la section [Livres audio (GETEM, LibriVox et le Projet Gutenberg)](#audio-books-getem-librivox-and-project-gutenberg). |
+| Nom d'utilisateur GETEM / Mot de passe GETEM | Vos identifiants d'abonnement [GETEM](https://getem.boun.edu.tr/), nécessaires pour écouter ou télécharger le contenu audio d'un livre (consultez la section [Se Connecter](#signing-in)), sont stockés de manière chiffrée sur le disque via l'API de protection des données Windows et liés à votre compte utilisateur Windows ; ils ne sont jamais stockés en clair. Laisser les deux champs vides et enregistrer supprime tous les identifiants enregistrés. LibriVox et le Projet Gutenberg ne nécessitent aucun compte et n'ont pas de champ équivalent. |
+| Format de sortie d'enregistrement | Conserve le flux original, extrait l'audio sans changer son codec ou convertit les enregistrements terminés en MP3. La valeur par défaut est le format de flux d'origine. |
+| Débit d'enregistrement MP3 | Définit le débit binaire utilisé lorsque le format de sortie d'enregistrement est MP3. La valeur par défaut est 128 Ko/s. |
+| Désactiver la vérification de la connectivité Internet avant de la lecture | Recommandé pour les utilisateurs qui subissent un délai avant le début de la lecture d'une station. Également utile lorsque le DNS est bloqué. |
+| Nettoyage: réinitialiser les paramètres et supprimer les données enregistrées... | Ce bouton ouvre une boîte de dialogue permettant de réinitialiser les paramètres de freeAudio et de supprimer les données enregistrées — consultez la section [Nettoyage: Réinitialiser les Paramètres et Supprimer les Données Enregistrées](#clean-up-reset-settings-and-delete-saved-data). |
+
+### Nettoyage: Réinitialiser les Paramètres et Supprimer les Données Enregistrées
+
+Le bouton **Nettoyage: réinitialiser les paramètres et supprimer les données enregistrées...** situé en bas de la page des paramètres de freeAudio ouvre la boîte de dialogue  **Réinitialiser les paramètres / supprimer les données enregistrées**. Il répertorie sous forme de cases à cocher ce que freeAudio stocke dans le dossier de configuration NVDA. **Rien n'est cochée par défaut.** Chaque élément indique l'espace occupé ou "rien d'enregistré":
+
+- **Paramètres** — réinitialisation aux valeurs par défaut. Le dossier des enregistrements et l'option **Enregistrer les morceaux aimés dans un fichier texte** sont conservés.
+- **Stations favorites**
+- **Liste des stations en cache** — téléchargée à nouveau en cas de besoin.
+- **Abonnements aux podcasts**
+- **Bibliothèques de livres audio** — GETEM, LibriVox et Projet  Gutenberg.
+- **Identifiant GETEM enregistré** — le nom d'utilisateur et le mot de passe enregistrés.
+- **Liste du jukebox** — vos fichiers musicaux ne sont pas supprimés.
+- **Positions de reprise enregistrées** — podcasts, livres audio et dossiers du jukebox.
+- **Signets** — chaque signet, y compris sa note textuelle et sa note vocale.
+- **Minuteries de mise en veille et alarmes**
+- **Plans d'enregistrements planifiés** — les enregistrements eux-mêmes ne sont pas supprimés.
+
+**Sélectionner tout** coche tous les éléments. **Réinitialiser / supprimer la sélection** applique votre choix; si rien n'est coché, freeAudio dit "Rien n'est sélectionné." **Annuler** (ou `Échap`) ferme la boîte de dialogue sans rien faire.
+
+Avant toute modification,freeAudio affiche la liste des éléments cochés, vous avertit que cette action est irréversible et vous demande de confirmer; la réponse par défaut est **Non**. Ensuite, un message dit "Terminé.", ou liste les éléments qui n'ont pas pu être supprimés — généralement parce qu'un fichier est en cours d'utilisation. Si le Navigateur de stations est ouvert lors de la suppression de données enregistrées, il est fermé et il est reconstruit à partir des données restantes lors de votre prochaine ouverture.
+
+Les enregistrements, le dossier des enregistrements et le fichier texte des morceaux aimés ne sont **jamais** concernés, et une réinitialisation des paramètres ne permet pas à freeAudio d'importer à nouveau les données à partir de l'ancienne extension FreeRadio.
+
+Après une réinitialisation des paramètres, les valeurs affichées sur la page des paramètres ne sont pas enregistrées lorsque vous cliquez sur OK, il est donc impossible d'annuler la réinitialisation. Il est recommandé de redémarrer NVDA pour que tous les paramètres soient pris en compte.
+
+## Notifications Muettes
+
+Lorsque **Notifications muettes** est activé dans les Paramètres, NVDA fait taire les annonces automatiques suivantes:
+
+- Nom de la station quand une nouvelle station commence à jouer
+- Changements d'état de lecture : lecture, pause, arrêt
+- Mode Obligato: démarré / arrêté
+- Événements d'enregistrement : démarré, arrêté, terminé (enregistrements instantanés, de morceau, de tous les morceaux et planifiés)
+- Annonces de changement de piste ICY, même lorsque **Annoncer automatiquement les changements de piste** est également activé
+- L'avertissement indiquant qu'une station est diffusée dans un mode de compatibilité spécial (consultez la section [Lecture](#playback))
+
+Les annonces suivantes ne sont intentionnellement **pas** affectées : messages d'erreur, commentaires sur les favoris (ajouté/déjà dans la liste), résultats de reconnaissance musicale et notifications de mise à jour.
+
+Le paramètre peut être basculé depuis NVDA Menu → Préférences → Paramètres → freeAudio, ou instantanément à tout moment via un geste de commande non assigné (en assigner un à partir de NVDA Menu → Préférences → Gestes de commandes → freeAudio). Lorsqu'il est activé, NVDA annonce une fois "Notifications muettes" ou "Notifications réactivées" pour confirmer le changement.
+
+## Annoncer automatiquement les changements de piste
+
+Lorsque l'option **Annoncer automatiquement les changements de piste** est activé dans les Paramètres, freeAudio vérifie le flux de métadonnées ICY de la station active en arrière-plan environ toutes les 5 secondes. Lorsque la piste change, le nouveau titre est automatiquement lu par NVDA — aucune pulsation de touche n'est requise.
+
+Lors du passage à une nouvelle station, les premières informations sur la piste sont annoncées dès que la connexion est établie. Si vous passez à une station qui ne diffuse pas de métadonnées ICY, le système reste silencieux et les informations sur la piste de la station précédente ne sont pas répétées.
+
+Cette fonctionnalité est désactivée par défaut et peut être basculée depuis NVDA Menu → Préférences → Paramètres → freeAudio.
+
+## Lecture
+
+freeAudio utilise **BASS** comme unique moteur de lecture pour tous ses contenus : radio internet, podcasts, livres audio et morceaux du jukebox. Aucune installation supplémentaire n'est requise ; il est intégré à l'extension. freeAudio n'utilise ni VLC, PotPlayer ou Windows Media Player.
+
+BASS envoie l'audio directement à la pile audio Windows et apparaît dans le mélangeur de volume Windows en tant que source audio indépendante nommée "pythonw.exe", séparé de NVDA. Cela signifie que l'audio freeAudio circule sur un canal complètement distinct de la parole de NVDA : la radio n'est pas coupée, mélangée ou affectée par les propres paramètres audio de NVDA pendant que NVDA parle. L'utilisateur peut régler le volume de la radio indépendamment de NVDA dans le Mélangeur de volume Windows. Prend en charge  HTTP, HTTPS et la plupart des formats de flux intégrés.
+
+Les épisodes de podcasts, les chapitres de livres audio et les morceaux du jukebox sont lus via BASS, car celui-ci peut ouvrir le flux comme un fichier consultable (même pendant le téléchargement), permettant ainsi un suivi précis de la position, un retour rapide/un retour en arrière par niveaux, vitesse de lecture, transposition de la hauteur, et la reprise. La mise en miroir audio , le décalage temporel, ainsi que la recherche et la reprise des podcasts/des livres audio/jukebox dépendent de BASS et sont toujours disponibles.
+
+**Stations HLS nécessitant un mode de compatibilité:** Certaines stations HLS (`.m3u8`) utilisent un format audio incompatible avec BASS — ce qui provoque des interruptions et des saccades constantes. Pour ces stations (actuellement les flux radio d'ABC Australia), freeAudio réencode automatiquement le flux audio dans un format classique, sans le réencoder, grâce à un petit serveur installé sur votre ordinateur. Aucune configuration n'est requise. Lors de la première écoute d'une telle station après le lancement de NVDA, NVDA annonce : "Cette station utilise un mode de lecture spécial pour éviter les saccades." Cette annonce suit le paramètre **Notifications muettes**.
+
+## Vérification des mises à jour
+
+freeAudio vérifie automatiquement les nouvelles versions via GitHub.
+
+**Vérification automatique:** S'exécute silencieusement en arrière-plan 15 secondes après le démarrage de NVDA. Si une nouvelle version est trouvée, vous en êtes averti ; si aucun n'est trouvé, aucun message n'est affiché.
+
+**Vérification manuelle:** Peut être déclenché sur demande depuis Outils NVDA → freeAudio → **Rechercher des mises à jour…**. Au démarrage, le résultat est annoncé même si la version est à jour.
+
+**Lorsqu'une mise à jour est trouvée:** Une boîte de dialogue s'ouvre affichant le numéro de version et votre version installée.
+
+- Si un fichier `.nvda-addon` directement téléchargeable est disponible sur la release de GitHub, un bouton **Télécharger  et Installer** est affiché. Une fois confirmé, le fichier est téléchargé en arrière-plan, NVDA annonce le démarrage du téléchargement et l'écran d'installation de NVDA s'ouvre automatiquement.
+- Si aucun lien de téléchargement direct n'est disponible, un bouton **Ouvrir la page** s'affiche et la page de la release sur GitHub s'ouvre dans le navigateur par défaut.
+
+**Pour désactiver les vérifications automatiques:** Désactivez l'option **Rechercher automatiquement les mises à jour au démarrage** depuis NVDA Menu → Préférences  → Paramètres → freeAudio.
+
+## Remerciements & Crédits
+
+* **Fondations et concepts originaux:** Un grand merci à **Gary Mp** ([GaryMp/freeradio](https://github.com/GaryMp/freeradio)) pour les concepts originaux d'extension radio et les structures de gestion des favoris qui ont servi de base à ce projet.
+* **Outils IA et LLM:** Nous tenons à remercier les outils modernes de modélisation du langage à grande échelle (LLM) (notamment Claude, ChatGPT et Gemini) pour leur aide lors des phases de développement, de refactorisation du code et de mise en œuvre des fonctionnalités.
+* **Service d'annuaire :** Annuaire des stations alimenté par l'[API Radio Browser](https://www.radio-browser.info/).
+* **Communauté:** Un grand merci à tous les membres de la communauté NVDA et aux traducteurs pour leur soutien continu, leurs commentaires et leurs contributions à la localisation.
+
+## Licence
+
+GPL v2

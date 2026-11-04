@@ -1,0 +1,5 @@
+wxPython==4.3.2
+configobj==5.0.9
+packaging==26.3
+comtypes==1.4.17
+accessible-output2==0.17

@@ -1,0 +1,56 @@
+name: Build Windows desktop release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          architecture: x64
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Restore pinned audio dependencies
+        run: python tools/fetch_vendor.py
+      - name: Run regression tests
+        env:
+          FREEAUDIO_SKIP_AUDIO_DEVICE_TEST: '1'
+        run: python -m unittest discover -s tests -v
+      - name: Verify release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = python -c 'from desktop.version import VERSION; print(VERSION)'
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag and source version differ' }
+      - name: Build packages
+        shell: pwsh
+        run: |
+          $compiler = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($compiler) { $compilerPath = $compiler.Source }
+          else { $compilerPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path -LiteralPath $compilerPath)) { throw 'Inno Setup compiler is required on the runner' }
+          python build.py --build-dir .build --output-dir releases --iscc $compilerPath
+      - name: Verify package integrity
+        run: python tools/verify_release.py releases
+      - name: Preserve packages for manual builds
+        uses: actions/upload-artifact@v7
+        with:
+          name: freeAudio-Desktop-windows
+          path: releases/*
+          if-no-files-found: error
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = @(Get-ChildItem releases -File | Where-Object { $_.Extension -in '.zip','.exe','.txt' } | ForEach-Object FullName)
+          $prerelease = @()
+          if ($env:GITHUB_REF_NAME -match 'alpha|beta|rc') { $prerelease = @('--prerelease') }
+          gh release create $env:GITHUB_REF_NAME @assets --verify-tag --draft @prerelease --title "freeAudio Desktop $env:GITHUB_REF_NAME" --notes-file CHANGELOG.md
