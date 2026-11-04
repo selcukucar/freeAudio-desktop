@@ -9,7 +9,7 @@ The configured target is `selcukucar/freeAudio-desktop`. Remote publication stat
 5. Build with Python 3.14 x64 and Inno Setup using the command in README.md. Run `tools/verify_release.py` against the output directory.
 6. Test both language profiles and the upgrade from the preceding installer. Confirm that favourites, credentials and media positions survive. Portable users retain their own `data` directory.
 7. If a code-signing certificate is available, sign the application EXE before packaging and the installer after compilation; regenerate checksums after signing. This source includes no certificate, key or publisher identity.
-8. Push a matching version tag only when ready to build. The prepared GitHub workflow runs tests, builds packages, verifies checksums and creates a **draft** release. It does not publish it automatically. The workflow has not been executed against a repository yet.
+8. Push a matching version tag only when ready to build. The prepared GitHub workflow runs tests, builds packages, verifies checksums and creates a **draft** release. It does not publish it automatically. Remote CI results must be checked before publication.
 9. Review and publish the draft manually. Alpha/beta/RC tags are marked as prereleases. The desktop update checker currently follows the latest stable release, excluding drafts and prereleases.
 
 `workflow_dispatch` builds packages without creating a release. The current workflow expects Inno Setup on the Windows runner. Audio output tests are explicitly skipped on a headless hosted runner; those checks must pass on a real Windows audio device before a public release.

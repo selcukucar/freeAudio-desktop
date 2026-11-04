@@ -37,6 +37,6 @@ These are pending acceptance checks, not claims that the port is fully certified
 - Windows 10 clean-machine installation and high-DPI/high-contrast manual acceptance.
 - A trusted code-signing certificate is not configured. The target desktop repository needs remote publication verification.
 
-The prepared GitHub workflow creates draft releases when a matching tag is pushed to a future repository; it has not run against a remote repository. Hosted headless CI explicitly skips the physical-audio test; release acceptance still requires that test on a real Windows device.
+The GitHub workflow creates draft releases when a matching tag is pushed, or preserves packages as artifacts on a manual run. Remote CI has been started; its final result is recorded separately in the release verification report. Hosted headless CI explicitly skips the physical-audio test; release acceptance still requires that test on a real Windows device.
 
 No telemetry is added. Rotating diagnostic logs remain in the selected local profile directory.
