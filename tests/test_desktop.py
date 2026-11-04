@@ -162,6 +162,66 @@ class AccessibilityTests(unittest.TestCase):
             frame.Destroy()
             self.app.ProcessPendingEvents()
 
+    def test_radio_context_menu_records_playing_station_and_allows_stop_after_switch(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
+            settings = Settings(directory)
+            frame = wx.Frame(None)
+            try:
+                install(ROOT, settings, frame, 'en')
+                with patch.object(sys, 'path', [str(ROOT / 'vendor')] + sys.path):
+                    module = importlib.import_module('freeAudio.radioDialog')
+                dialog = Mock()
+                dialog._get_selected_station.return_value = ({'name': 'Selected other station'}, 0)
+                dialog._notebook.GetSelection.return_value = 0
+                dialog._manager.is_favorite.return_value = False
+                dialog._player.get_current_station.return_value = {'name': 'Playing station'}
+                dialog._player.has_media.return_value = True
+                dialog._plugin = types.SimpleNamespace(_instant_record_busy=False, _toggle_instant_recording=Mock())
+                dialog._recorder.is_recording.return_value = False
+                dialog._active_list.return_value.GetScreenPosition.return_value = wx.Point(0, 0)
+                dialog.GetScreenPosition.return_value = wx.Point(0, 0)
+                actions, entries = {}, {}
+                dialog.Bind.side_effect = lambda event, handler, item: actions.__setitem__(item.GetItemLabelText(), handler)
+                def inspect_menu(menu, point):
+                    entries.update({item.GetItemLabelText(): item.IsEnabled() for item in menu.GetMenuItems() if not item.IsSeparator()})
+                dialog.PopupMenu.side_effect = inspect_menu
+                module.RadioDialog._show_station_context_menu(dialog)
+                label = 'Start instant recording of playing station'
+                self.assertTrue(entries[label])
+                actions[label](None)
+                dialog._plugin._toggle_instant_recording.assert_called_once()
+                dialog._recorder.is_recording.return_value = True
+                dialog._player.get_current_station.return_value = {'media_kind': 'podcast'}
+                module.RadioDialog._show_station_context_menu(dialog)
+                self.assertTrue(entries['Stop instant recording'])
+                dialog._recorder.is_recording.return_value = False
+                module.RadioDialog._show_station_context_menu(dialog)
+                self.assertFalse(entries[label])
+            finally:
+                frame.Destroy()
+                self.app.ProcessPendingEvents()
+
+    def test_right_click_selects_clicked_station_and_opens_same_keyboard_menu(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
+            frame = wx.Frame(None)
+            try:
+                install(ROOT, Settings(directory), frame, 'en')
+                with patch.object(sys, 'path', [str(ROOT / 'vendor')] + sys.path):
+                    module = importlib.import_module('freeAudio.radioDialog')
+                dialog, event, listing = Mock(), Mock(), Mock()
+                event.GetEventObject.return_value = listing
+                event.GetPosition.return_value = wx.Point(100, 100)
+                listing.HitTest.return_value = 2
+                module.RadioDialog._on_station_context_menu(dialog, event)
+                listing.SetSelection.assert_called_once_with(2)
+                listing.SetFocus.assert_called_once()
+                dialog._show_station_context_menu.assert_called_once()
+            finally:
+                frame.Destroy()
+                self.app.ProcessPendingEvents()
+
     def test_quick_settings_save_preserves_voice_and_device_while_loading(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
             settings = Settings(directory)

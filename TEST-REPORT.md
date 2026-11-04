@@ -1,3 +1,18 @@
+# freeAudio Desktop 1.0.1 — recording verification
+
+Date: 2026-11-04. Windows x64.
+
+- 63 automated tests pass locally, including real audio output. New cases exercise actual HTTP recording, failed connections, unwritable destinations, stopping a stalled stream, repeated recordings, menu command availability, pointer selection, nonblocking startup, duplicate clicks, switching playback and shutdown during connection resolution.
+- Radio and Favourites expose the same menu through right-click, Applications and Shift+F10. Recording targets the currently playing live station; changing list selection never changes the recording source. Stop remains available after playback switches to a podcast.
+- Startup success requires received audio bytes. Empty recordings are not reported as saved. Direct/ICY reads and HLS requests have bounded waits, and conversion starts only after the writer exits.
+- New recording paths include seconds and a unique suffix. Independent recordings cannot append to a previous recording from the same minute.
+- TGRT FM was recorded from its live public stream; 114072 bytes were saved and the result played through the BASS engine at zero volume with a reported duration of 7.12 seconds.
+- Recording notifications include the final saved path; Turkish and English menu labels and help are included.
+
+Packaged startup, archive integrity and remote publication results are recorded in the adjacent versioned verification report. Physical braille, every screen-reader dialog, long-duration recordings and every online station remain outside these checks.
+
+---
+
 # freeAudio Desktop 1.0.0 — verification status
 
 Date: 2026-11-04. Target: Windows 10/11 x64.

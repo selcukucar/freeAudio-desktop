@@ -1083,6 +1083,10 @@ class GlobalPlugin(BookmarkMixin, ObligatoMixin, MiscTogglesMixin, TrackInfoMixi
 
 
 	def terminate(self):
+		self._recording_shutdown = True
+		timer = getattr(self, '_record_action_timer', None)
+		if timer:
+			timer.Stop()
 		# Remove all dynamically created favourite-station scripts from the class.
 		for name in getattr(self, "_station_script_names", []):
 			try:

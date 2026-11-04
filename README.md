@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.0.0
+# freeAudio Desktop 1.0.1
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -10,6 +10,16 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 - Ana pencerede **Kütüphaneyi aç**, **Ayarlar**, **Komutlar ve kısayollar**, **Bildirim geçmişi**, **Dil / Language**, **Profil yedekleme ve geri yükleme** ve **Yardım** düğmeleri bulunur.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
+
+## Anlık radyo kaydı
+
+Radyo veya Favoriler listesindeki sağ tık menüsünü açın. Klavyede aynı menüye Uygulamalar tuşu veya Shift+F10 ile ulaşabilirsiniz.
+**Dinlenen istasyonun anlık kaydını başlat** seçeneği o anda çalan radyoyu kaydeder; listede başka bir istasyonu seçmek kaynağı değiştirmez.
+Ses verisi alındığında kayıt başladı bildirimi gelir. Durdurmak için aynı menüdeki **Anlık kaydı durdur** seçeneğini kullanın.
+**Kayıt klasörünü aç** dosyaya ulaşmanızı sağlar; durdurma bildirimi kaydedilen dosyanın tam yolunu verir.
+Kayıt sırasında dinlemeyi durdurmak veya başka istasyona geçmek kaydı değiştirmez. Her kayıt ayrı dosyaya yazılır.
+Podcast, sesli kitap ve yerel dosyalar için bu başlatma seçeneği kapalıdır. Bağlantı veya klasör hatası başarı bildirimi yerine hata verir.
+Kayıt işlemi sürerken yinelenen tıklamalar ikinci bir kayıt başlatmaz. Mevcut Ctrl+Alt+Shift+E kısayolu da kullanılabilir.
 
 ## Veri ve yedekleme
 

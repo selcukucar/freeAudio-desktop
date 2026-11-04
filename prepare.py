@@ -6,6 +6,19 @@ from desktop.help_content import GUIDES
 
 ROOT = Path(__file__).resolve().parent
 TR = {
+    'Start instant &recording of playing station': 'Dinlenen istasyonun anlık &kaydını başlat',
+    'Stop instant &recording': 'Anlık &kaydı durdur',
+    'Open recordings &folder': 'Kayıt &klasörünü aç',
+    'A recording operation is already in progress.': 'Bir kayıt işlemi zaten devam ediyor.',
+    'Instant recording is available for live radio only. Use the download command for podcasts and audio books.':
+        'Anlık kayıt yalnızca canlı radyo için kullanılabilir. Podcast ve sesli kitaplar için indirme komutunu kullanın.',
+    'Saving recording...': 'Kayıt kaydediliyor...',
+    'Connecting to station for recording...': 'Kayıt için istasyona bağlanılıyor...',
+    'Recording saved: %s': 'Kayıt kaydedildi: %s',
+    'Recording stopped. No audio was received.': 'Kayıt durduruldu. Ses verisi alınamadı.',
+    'Could not stop recording. The original file has been retained.': 'Kayıt durdurulamadı. Özgün dosya korundu.',
+    'Could not start recording. Check the station connection and recording folder.':
+        'Kayıt başlatılamadı. İstasyon bağlantısını ve kayıt klasörünü kontrol edin.',
     'No shortcut': 'Kısayol yok',
     'Unavailable': 'Kullanılamıyor',
     'Use &default shortcut': '&Varsayılan kısayolu kullan',

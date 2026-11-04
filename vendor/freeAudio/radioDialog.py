@@ -26,6 +26,7 @@ from . import gutenberg_audiobooks
 from . import jukebox
 from . import bookmarks
 from . import bookmarkUI
+from . import recorder as recorder_module
 import urllib.parse
 import urllib.request
 from gui import nvdaControls
@@ -1115,6 +1116,7 @@ class RadioDialog(wx.Dialog):
 		self._fav_panel.SetSizer(sizer)
 
 		self._fav_list.Bind(wx.EVT_CHAR,           self._on_list_char)
+		self._fav_list.Bind(wx.EVT_CONTEXT_MENU, self._on_station_context_menu)
 		self._fav_list.Bind(wx.EVT_LISTBOX,        self._on_selection_changed)
 		self._fav_list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_play_clicked)
 		self._fav_list.Bind(wx.EVT_KEY_DOWN,       self._on_fav_list_key)
@@ -1210,6 +1212,7 @@ class RadioDialog(wx.Dialog):
 		self._limit_spin.Bind(wx.EVT_SPINCTRL, self._on_limit_changed)
 
 		self._all_list.Bind(wx.EVT_CHAR,           self._on_list_char)
+		self._all_list.Bind(wx.EVT_CONTEXT_MENU, self._on_station_context_menu)
 		self._all_list.Bind(wx.EVT_LISTBOX,        self._on_selection_changed)
 		self._all_list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_play_clicked)
 		self._all_list.Bind(wx.EVT_KEY_DOWN,       self._on_list_key)
@@ -3776,6 +3779,16 @@ class RadioDialog(wx.Dialog):
 			ui.message(_("%(name)s: stream check failed — %(detail)s") % {
 				"name": name, "detail": detail})
 
+	def _on_station_context_menu(self, event):
+		lst = event.GetEventObject()
+		position = event.GetPosition()
+		if position != wx.DefaultPosition:
+			index = lst.HitTest(lst.ScreenToClient(position))
+			if index != wx.NOT_FOUND:
+				lst.SetSelection(index)
+		lst.SetFocus()
+		self._show_station_context_menu()
+
 	def _show_station_context_menu(self):
 		"""Context menu for the selected station in the All-stations or Favourites list.
 
@@ -3792,6 +3805,16 @@ class RadioDialog(wx.Dialog):
 		has_profile = bool(station and station.get("station_audio"))
 
 		menu = wx.Menu()
+		# Explicit recording actions never emulate the multi-press shortcut.
+		active = bool(self._recorder and self._recorder.is_recording())
+		current = self._player.get_current_station()
+		live = bool(current and current.get('media_kind') not in ('podcast', 'audiobook', 'jukebox') and self._player.has_media())
+		item_record = menu.Append(wx.ID_ANY, _("Stop instant &recording") if active else _("Start instant &recording of playing station"))
+		item_record.Enable(bool(self._plugin and (active or live) and not getattr(self._plugin, '_instant_record_busy', False)))
+		self.Bind(wx.EVT_MENU, lambda e: self._plugin._toggle_instant_recording(), item_record)
+		item_folder = menu.Append(wx.ID_ANY, _("Open recordings &folder"))
+		self.Bind(wx.EVT_MENU, lambda e: os.startfile(recorder_module._recordings_dir()), item_folder)
+		menu.AppendSeparator()
 
 		# --- Details ---
 		# Translators: Context-menu item; same action as the Station Details button.

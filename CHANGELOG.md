@@ -1,3 +1,13 @@
+# 1.0.1
+
+- Radyo ve Favoriler sağ tık menüsüne anlık kayıt başlat/durdur ve kayıt klasörünü aç eklendi. Uygulamalar tuşu ve Shift+F10 aynı menüyü açar.
+- Fareyle sağ tık olayı listelere bağlandı; tıklanan satır seçilir. Kayıt komutu o anda dinlenen radyoyu kaydeder.
+- Bağlantı çözümleme ve kayıt başlatma arayüzü engellemeden yürür. Başarı yalnızca ses verisi alındığında bildirilir.
+- Kayıt adları benzersizdir; aynı dakikadaki kayıtlar eski dosyaya eklenmez.
+- Veri göndermeyen yayınlarda durdurma beklemesi sınırlandı. Dosya kapanmadan dönüştürme yapılmaz; boş kayıt başarı olarak sunulmaz.
+- Hatalı bağlantı, yazılamayan klasör, istasyon değişimi, yinelenen tıklama ve kapanış sırasında kayıt başlatma senaryoları test edildi.
+- Kayıt durdurma bildirimi dosyanın tam yolunu verir. Türkçe/İngilizce yardım güncellendi.
+
 # 1.0.0
 
 - Bağımsız uygulama için Windows tuşu içermeyen varsayılan kısayollar. Windows'un ayırdığı F12 yerine yer imi için Ctrl+Alt+Shift+B.

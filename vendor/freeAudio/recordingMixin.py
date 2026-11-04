@@ -233,6 +233,59 @@ class RecordingMixin:
 			_("Recording every song until stopped. Current song: %s") % icy,
 		)
 
+
+	def _toggle_instant_recording(self):
+		"""Explicit menu action; shared by the single-press shortcut."""
+		if getattr(self, '_recording_shutdown', False):
+			return
+		timer = getattr(self, '_record_action_timer', None)
+		if timer:
+			timer.Stop()
+			self._record_action_timer = None
+		if getattr(self, '_instant_record_busy', False):
+			ui.message(_('A recording operation is already in progress.'))
+			return
+		stopping = self._recorder.is_recording()
+		if not stopping:
+			station = self._player.get_current_station()
+			if not station or not self._player.has_media():
+				ui.message(_('No station is playing'))
+				return
+			if station.get('media_kind') in ('podcast', 'audiobook', 'jukebox'):
+				ui.message(_('Instant recording is available for live radio only. Use the download command for podcasts and audio books.'))
+				return
+			# Freeze the URL now: changing playback while a connection is being
+			# resolved must not silently record a different station.
+			from types import SimpleNamespace
+			snapshot = SimpleNamespace(
+				_current_url=getattr(self._player, '_current_url', None),
+				_current_url_resolved=getattr(self._player, '_current_url_resolved', None))
+			name = self._player.get_current_name()
+		self._instant_record_busy = True
+		self._song_start_gen = getattr(self, '_song_start_gen', 0) + 1
+		ui.message(_('Saving recording...') if stopping else _('Connecting to station for recording...'))
+		def deliver(message):
+			if not getattr(self, '_recording_shutdown', False):
+				_notify(message)
+		def work():
+			try:
+				if stopping:
+					path = self._recorder.stop()
+					message = _('Recording saved: %s') % path if path else _('Recording stopped. No audio was received.')
+				else:
+					self._recorder.start(snapshot, name)
+					if not self._recorder.wait_started():
+						self._recorder.stop()
+						raise RuntimeError('No audio received')
+					message = _('Recording started: %s') % name
+				wx.CallAfter(deliver, message)
+			except Exception:
+				log.exception('freeAudio: instant recording operation failed')
+				wx.CallAfter(deliver, _('Could not stop recording. The original file has been retained.') if stopping else _('Could not start recording. Check the station connection and recording folder.'))
+			finally:
+				self._instant_record_busy = False
+		threading.Thread(target=work, daemon=True, name='freeAudio-InstantRecording').start()
+
 	@script(
 		# Translators: Name of an NVDA command (Ctrl+Win+E); single-press toggles a plain instant recording, double-press records the current song, triple-press records every song until stopped - see this method's logic below.
 		description=_("Start or stop instant recording. Press twice for current song recording, thrice for recording every song."),
@@ -240,6 +293,9 @@ class RecordingMixin:
 		gesture="kb:control+windows+e",
 	)
 	def script_toggleRecord(self, gesture):
+		if getattr(self, '_instant_record_busy', False):
+			ui.message(_('A recording operation is already in progress.'))
+			return
 		# Always cancel any pending delayed action so that only the latest press counts.
 		old_timer = getattr(self, "_record_action_timer", None)
 		if old_timer:
@@ -292,59 +348,8 @@ class RecordingMixin:
 		# ------------------------------------------------------------------ #
 		def _do_single_press():
 			self._record_action_timer = None
-
-			# If song-capture is active, single press does nothing (double-press stops it)
-			if self._recorder.is_song_capture():
-				return
-
-			station = self._player.get_current_station()
-			# See the matching comment in _start_song_capture() above - keyed
-			# off "media_kind" rather than "tags" for the same reason.
-			media_kind = station.get("media_kind") if station else None
-			is_podcast_or_audiobook = media_kind in ("podcast", "audiobook")
-			is_jukebox = media_kind == "jukebox"
-
-			# If a recording is already running, stop it (user may want to end it)
-			if self._recorder.is_recording():
-				def _stop_recording():
-					path = self._recorder.stop(self._player)
-					if path:
-						# Translators: Spoken when the single-press gesture stops an in-progress plain instant recording; %s is the saved filename.
-						wx.CallAfter(_notify, _("Recording stopped: %s") % os.path.basename(path))
-					else:
-						# Translators: Fallback spoken when a recording is stopped but no output path was returned.
-						wx.CallAfter(_notify, _("Recording stopped"))
-				threading.Thread(target=_stop_recording, daemon=True, name="freeAudio-RecordingFinalize").start()
-				return
-
-			# No recording; if it's a podcast/audiobook, warn and abort
-			if is_podcast_or_audiobook:
-				# Translators: Same message as the song-capture path above, spoken here when single-pressing Ctrl+Win+E on a podcast/audiobook episode.
-				wx.CallAfter(ui.message, _("Podcast or audiobook cannot be recorded. To download the episode or book, press Ctrl+Win+V."))
-				return
-
-			# No recording; a jukebox track is already a local file, so
-			# there's nothing to record - warn and abort rather than
-			# starting a pointless recording of a local file.
-			if is_jukebox:
-				# Translators: Same message as the song-capture path above, spoken here when single-pressing Ctrl+Win+E on a jukebox track.
-				wx.CallAfter(ui.message, _("Jukebox tracks are already local files and cannot be recorded."))
-				return
-
-			if not self._player.has_media():
-				# Translators: Spoken when the double-press (song-capture) gesture is used while nothing is playing.
-				wx.CallAfter(ui.message, _("No station is playing"))
-				return
-
-			name = self._player.get_current_name()
-			try:
-				self._recorder.start(self._player, name, timeshift_buffer=self._player.get_timeshift_buffer())
-				# Translators: Spoken when a plain instant recording starts (single-press Ctrl+Win+E); %s is the station name.
-				wx.CallAfter(_notify, _("Recording started: %s") % name)
-			except Exception as exc:
-				log.error("freeAudio: instant recording failed to start: %s", exc)
-				# Translators: Generic fallback spoken if starting an instant recording raises an unexpected exception.
-				wx.CallAfter(ui.message, _("Could not start recording"))
+			if not self._recorder.is_song_capture():
+				self._toggle_instant_recording()
 
 		# Delay single-press action by 350 ms so a second press can cancel it.
 		self._record_action_timer = wx.CallLater(self._MULTI_PRESS_DELAY_MS, _do_single_press)

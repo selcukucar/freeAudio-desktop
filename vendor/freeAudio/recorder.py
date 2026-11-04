@@ -17,6 +17,7 @@ import ssl
 import struct
 import subprocess
 import threading
+import socket
 import urllib.request
 import uuid
 
@@ -297,11 +298,11 @@ def _recordings_dir():
 	try:
 		import config as _cfg
 		custom = _cfg.conf["freeAudio"].get("recordings_dir", "").strip()
-		if custom and os.path.isabs(custom):
-			os.makedirs(custom, exist_ok=True)
-			return custom
 	except Exception:
-		pass
+		custom = ""
+	if custom and os.path.isabs(custom):
+		os.makedirs(custom, exist_ok=True)
+		return custom
 	docs = os.path.join(os.path.expanduser("~"), "Documents")
 	path = os.path.join(docs, "freeAudio Recordings")
 	os.makedirs(path, exist_ok=True)
@@ -315,7 +316,7 @@ def _safe_filename(name):
 
 
 def _make_output_path(station_name, ext="mp3", folder=None):
-	ts    = datetime.datetime.now().strftime("%Y-%m-%d %H-%M")
+	ts    = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + "-" + uuid.uuid4().hex[:8]
 	name  = _safe_filename(station_name)
 	fname = f"{name} - {ts}.{ext}"
 	return os.path.join(folder or _recordings_dir(), fname)
@@ -1006,6 +1007,8 @@ class _StreamWriter:
 		# real recording apart from one that spent its whole window failing
 		# to connect (see _run_once / _run_icy / _run_hls).
 		self._connected = threading.Event()
+		self._first_data = threading.Event()
+		self._active_socket = None
 		
 		# Resolve HLS master playlists, and any other playlist/tuning
 		# wrapper (.pls, .m3u, or an extensionless tuning endpoint such as
@@ -1036,11 +1039,24 @@ class _StreamWriter:
 				self._run()
 		finally:
 			self._close_final_segment()
+			sock, self._active_socket = self._active_socket, None
+			if sock is not None:
+				sock.close()
 
 	def stop(self):
 		self._stop.set()
+		# Interrupt a stalled read before joining; closing HTTPResponse from
+		# another thread can itself wait on the read lock.
+		sock = getattr(self, '_active_socket', None)
+		if sock is not None:
+			try:
+				sock.shutdown(socket.SHUT_RDWR)
+			except OSError:
+				pass  # A closed socket is also bounded by the read timeout below.
 		if self._thread:
 			self._thread.join(timeout=5)
+			if self._thread.is_alive():
+				raise RuntimeError("Recording is still stopping; the original file has been retained")
 
 	def is_connected(self):
 		"""True once a connection has succeeded and data has started writing
@@ -1092,7 +1108,7 @@ class _StreamWriter:
 				except Exception as e2:
 					if self._stop.is_set():
 						return
-					self._error = e2
+					self._error = str(e2)
 					fail_streak += 1
 					log.warning(
 						"freeAudio Recorder: ICY connection error (streak=%d): %s",
@@ -1102,7 +1118,7 @@ class _StreamWriter:
 			except Exception as e:
 				if self._stop.is_set():
 					return
-				self._error = e
+				self._error = str(e)
 				if not connected:
 					fail_streak += 1
 				log.warning(
@@ -1145,8 +1161,12 @@ class _StreamWriter:
 			headers={"User-Agent": ua, "Icy-MetaData": "1" if self._split_title is not None else "0"},
 		)
 		try:
-			resp_cm = _urlopen(req, 20)
+			# Bound reads as well as connection setup so Stop can join before
+			# conversion starts even if the station stops sending bytes.
+			resp_cm = _urlopen(req, 3)
 		except Exception as e:
+			if isinstance(e, urllib.error.HTTPError):
+				e.close()
 			# urllib raises a ValueError/http.client.BadStatusLine for ICY responses.
 			# The message reliably contains "ICY" in that case.
 			if _is_icy_error(e):
@@ -1158,6 +1178,7 @@ class _StreamWriter:
 			raise
 
 		with resp_cm as resp:
+			self._active_socket = getattr(getattr(getattr(resp, 'fp', None), 'raw', None), '_sock', None)
 			if first:
 				ct  = resp.headers.get("Content-Type", "")
 				ext = _guess_ext(self._effective_url, ct)
@@ -1290,10 +1311,14 @@ class _StreamWriter:
 		in continuous mode, the file is rotated and writing carries on."""
 		if demux is None:
 			self._cur_file.write(chunk)
+			if chunk:
+				self._first_data.set()
 			return True
 		for kind, payload in demux.feed(chunk):
 			if kind == "audio":
 				self._cur_file.write(payload)
+				if payload:
+					self._first_data.set()
 				continue
 			title = _norm_title(payload)
 			if not self._baseline_confirmed:
@@ -1324,8 +1349,9 @@ class _StreamWriter:
 	def _run_icy(self, first):
 		"""Connect via raw socket to handle Shoutcast/Icecast ICY 200 OK servers."""
 		sock, headers, body_prefix = _open_icy(
-			self._effective_url, timeout=20, want_meta=self._split_title is not None,
+			self._effective_url, timeout=3, want_meta=self._split_title is not None,
 		)
+		self._active_socket = sock
 		try:
 			if first:
 				ct  = headers.get("content-type", "")
@@ -1361,9 +1387,11 @@ class _StreamWriter:
 	def _fetch_manifest_with_fallback(self, manifest_url):
 		"""Fetch an HLS manifest, trying primary then fallback User-Agent."""
 		for ua in (_USER_AGENT_PRIMARY, _USER_AGENT_FALLBACK):
+			if self._stop.is_set():
+				raise RuntimeError('Recording stopped')
 			try:
 				req = urllib.request.Request(manifest_url, headers={"User-Agent": ua})
-				with _urlopen(req, 10) as resp:
+				with _urlopen(req, 3) as resp:
 					return resp.read(32768).decode("utf-8", errors="ignore")
 			except Exception:
 				continue
@@ -1372,9 +1400,11 @@ class _StreamWriter:
 	def _fetch_segment_with_fallback(self, seg_url):
 		"""Fetch an HLS segment, trying primary then fallback User-Agent."""
 		for ua in (_USER_AGENT_PRIMARY, _USER_AGENT_FALLBACK):
+			if self._stop.is_set():
+				raise RuntimeError('Recording stopped')
 			try:
 				req = urllib.request.Request(seg_url, headers={"User-Agent": ua})
-				with _urlopen(req, 15) as resp:
+				with _urlopen(req, 3) as resp:
 					return resp.read()
 			except Exception:
 				continue
@@ -1541,6 +1571,8 @@ class _StreamWriter:
 
 							if output_file:
 								output_file.write(data)
+								if data:
+									self._first_data.set()
 								output_file.flush()
 							
 							seen_segments.mark_written(segment_identity)
@@ -1624,8 +1656,13 @@ def _resolve_playlist(url, _hops=3):
 		)
 		with _urlopen(req, 10) as resp:
 			ct = (resp.headers.get("content-type") or "").lower().split(";")[0].strip()
+			if ct.startswith(('audio/', 'application/ogg', 'video/')) and ct not in (
+				'audio/x-mpegurl', 'audio/mpegurl', 'audio/x-scpls', 'audio/x-ms-wax'):
+				return url, False
 			text = resp.read(8192).decode("utf-8", errors="ignore")
 	except Exception as e:
+		if isinstance(e, urllib.error.HTTPError):
+			e.close()
 		log.warning("freeAudio Recorder: playlist resolve failed: %s", e)
 		return url, False
 
@@ -2061,6 +2098,8 @@ class Recorder:
 		main_player: Reference to the main RadioPlayer instance used for user playback.
 		"""
 		self._writer          = None
+		self._instant_lock = threading.RLock()
+		self._terminated = False
 		self._output_path     = None
 		self._station_name    = ""
 		self._scheduled       = _load_schedules()
@@ -2106,6 +2145,10 @@ class Recorder:
 		writer.stop()
 		if getattr(writer, "_continuous", False):
 			return self._finish_continuous(writer)
+		if not os.path.isfile(writer.output_path) or os.path.getsize(writer.output_path) == 0:
+			if os.path.isfile(writer.output_path):
+				os.remove(writer.output_path)
+			return None
 		return self._postprocess_recording(writer.output_path)
 
 	def _postprocess_recording(self, path):
@@ -2206,16 +2249,39 @@ class Recorder:
 		if not original_url:
 			raise RuntimeError("No station playing")
 		log.warning("freeAudio Recorder: instant recording URL = %s", original_url)
-		if self._writer:
-			self._writer.stop()
-
 		out = _make_output_path(station_name)
-		self._output_path  = out
-		self._station_name = station_name
-		self._writer = _StreamWriter(original_url, out)
-		self._writer.start()
+		writer = _StreamWriter(original_url, out)
+		with self._instant_lock:
+			if self._terminated:
+				raise RuntimeError("Recorder is shutting down")
+			if self._writer is not None:
+				raise RuntimeError("A recording is already active")
+			self._output_path = out
+			self._station_name = station_name
+			self._writer = writer
+			try:
+				writer.start()
+			except Exception:
+				self._writer = None
+				self._output_path = None
+				self._station_name = ''
+				raise
 		log.warning("freeAudio Recorder: instant recording started → %s", out)
 		return out
+
+	def wait_started(self, timeout=12):
+		"""Only report success after audio bytes reach the output file."""
+		writer = self._writer
+		if writer is None:
+			return False
+		import time
+		deadline = time.monotonic() + timeout
+		while time.monotonic() < deadline and self._writer is writer:
+			if writer._first_data.wait(.05):
+				return True
+			if writer._error is not None or writer._stop.is_set():
+				return False
+		return False
 
 	def start_song_capture(self, player, song_title, timeshift_buffer=None, continuous=False):
 		"""Start a song-capture recording named after the current ICY track title.
@@ -2413,13 +2479,13 @@ class Recorder:
 		return self._writer is not None
 
 	def get_output_path(self):
-		return self._output_path
+		return self._writer.output_path if self._writer is not None else self._output_path
 
 	def _current_song_title(self):
 		"""Continuous capture: the song being recorded right now (follows the
 		track changes), otherwise None."""
 		writer = self._writer
-		if self.is_song_capture and getattr(self, "_song_continuous", False) and writer is not None:
+		if self.is_song_capture() and getattr(self, "_song_continuous", False) and writer is not None:
 			return writer._seg_title
 		return None
 
@@ -2728,6 +2794,8 @@ class Recorder:
 				)
 
 	def terminate(self):
+		with self._instant_lock:
+			self._terminated = True
 		self._stop_scheduler.set()
 		if self._writer:
 			self._writer.stop()

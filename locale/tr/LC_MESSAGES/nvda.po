@@ -6714,6 +6714,46 @@ msgstr "&Varsayılan kısayolu kullan"
 msgid "Global shortcut (for example control+alt+shift+r; empty disables):"
 msgstr "Genel kısayol (örneğin control+alt+shift+r; boş bırakmak kapatır):"
 
+msgid "Start instant &recording of playing station"
+msgstr "Dinlenen istasyonun anlık &kaydını başlat"
+
+msgid "Stop instant &recording"
+msgstr "Anlık &kaydı durdur"
+
+msgid "Open recordings &folder"
+msgstr "Kayıt &klasörünü aç"
+
+msgid "A recording operation is already in progress."
+msgstr "Bir kayıt işlemi zaten devam ediyor."
+
+msgid ""
+"Instant recording is available for live radio only. Use the download command"
+" for podcasts and audio books."
+msgstr ""
+"Anlık kayıt yalnızca canlı radyo için kullanılabilir. Podcast ve sesli "
+"kitaplar için indirme komutunu kullanın."
+
+msgid "Saving recording..."
+msgstr "Kayıt kaydediliyor..."
+
+msgid "Connecting to station for recording..."
+msgstr "Kayıt için istasyona bağlanılıyor..."
+
+msgid "Recording saved: %s"
+msgstr "Kayıt kaydedildi: %s"
+
+msgid "Recording stopped. No audio was received."
+msgstr "Kayıt durduruldu. Ses verisi alınamadı."
+
+msgid "Could not stop recording. The original file has been retained."
+msgstr "Kayıt durdurulamadı. Özgün dosya korundu."
+
+msgid ""
+"Could not start recording. Check the station connection and recording "
+"folder."
+msgstr ""
+"Kayıt başlatılamadı. İstasyon bağlantısını ve kayıt klasörünü kontrol edin."
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"
