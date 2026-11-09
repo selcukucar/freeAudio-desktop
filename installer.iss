@@ -47,3 +47,10 @@ Name: "{autodesktop}\freeAudio Desktop"; Filename: "{app}\freeAudioDesktop.exe";
 
 [Run]
 Filename: "{app}\freeAudioDesktop.exe"; Description: "{cm:LaunchProgram,freeAudio Desktop}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\freeAudioDesktop.exe"; Flags: nowait runasoriginaluser; Check: ShouldRestartAfterUpdate
+
+[Code]
+function ShouldRestartAfterUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:RESTARTAPP|0}') = '1';
+end;

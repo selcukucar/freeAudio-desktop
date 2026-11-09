@@ -67,9 +67,11 @@ def main():
         for file in source_files(ROOT, build, output):
             archive.write(file, Path('freeAudio-desktop') / file.relative_to(ROOT))
     deliverables = [portable, source_zip, output / f'freeAudio-Desktop-{VERSION}-win64-setup.exe']
-    (output / 'SHA256SUMS.txt').write_text(''.join(
-        hashlib.file_digest(file.open('rb'), 'sha256').hexdigest() + '  ' + file.name + '\n'
-        for file in deliverables), encoding='ascii')
+    checksums = []
+    for file in deliverables:
+        with file.open('rb') as stream:
+            checksums.append(hashlib.file_digest(stream, 'sha256').hexdigest() + '  ' + file.name + '\n')
+    (output / 'SHA256SUMS.txt').write_text(''.join(checksums), encoding='ascii')
     print('\n'.join(str(file) for file in deliverables))
 
 

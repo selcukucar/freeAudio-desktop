@@ -47,6 +47,39 @@ class LifecycleTests(unittest.TestCase):
         DesktopFrame.exit(frame, event)
         frame.plugin.terminate.assert_called_once()
 
+    def test_verified_update_launches_only_after_audio_shutdown_and_save(self):
+        frame = self.frame()
+        frame.plugin._recorder.is_recording.return_value = False
+        frame.plugin._recorder.get_active_scheduled.return_value = []
+        frame._pending_update = (object(), object())
+        frame.settings = {'desktop': {'language': 'en'}}
+        order = []
+        frame.plugin.terminate.side_effect = lambda: order.append('audio closed')
+        frame.persist_settings.side_effect = lambda: order.append('saved') or True
+        with patch('desktop.updates.verify_download') as verify, patch('desktop.updates.launch_installer') as launch:
+            launch.side_effect = lambda *args: order.append('installer')
+            DesktopFrame.exit(frame, Mock())
+            verify.assert_called_once_with(*frame._pending_update)
+            launch.assert_called_once()
+        self.assertEqual(order, ['saved', 'audio closed', 'saved', 'installer'])
+        frame.Destroy.assert_called_once()
+
+    def test_tampered_update_keeps_application_running(self):
+        frame = self.frame()
+        frame.plugin._recorder.is_recording.return_value = False
+        frame.plugin._recorder.get_active_scheduled.return_value = []
+        frame._pending_update = (object(), object())
+        event = Mock()
+        event.CanVeto.return_value = True
+        with patch('desktop.updates.verify_download', side_effect=ValueError('changed')), patch(
+                'desktop.updates.launch_installer') as launch, patch('main.wx.MessageBox'):
+            DesktopFrame.exit(frame, event)
+        event.Veto.assert_called_once()
+        launch.assert_not_called()
+        frame.plugin.terminate.assert_not_called()
+        self.assertFalse(frame._closing)
+        self.assertIsNone(frame._pending_update)
+
     def test_save_failure_notifies_once_until_next_success(self):
         frame = self.frame()
         frame.settings.save.side_effect = [OSError('disk full'), OSError('disk full'), None, OSError('disk full')]

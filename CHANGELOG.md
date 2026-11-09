@@ -1,3 +1,12 @@
+# 1.1.0
+
+- Ana pencereye ve kütüphaneye erişilebilir Durdur düğmesi eklendi. Ana pencere ve kütüphanede F8; genel Ctrl+Alt+Shift+S aynı durdurma yolunu kullanır.
+- Başlangıçta otomatik sürdürme açıksa ilk odak Durdur düğmesindedir. Ana pencerede çalan medya ve duraklat/sürdür düğmesi bulunur.
+- Durdurulan bağlantının gecikmeli profil veya başlangıç işlemiyle tekrar çalması önlendi. Ses motorunun yanıtını beklemek arayüzü engellemez.
+- Kurulu uygulama yeni sürümü doğrudan indirip doğrulayabilir, ayarları koruyarak kurabilir ve yeniden açılabilir. Taşınabilir sürüm ZIP indirir.
+- İptal, bağlantı kesilmesi, eksik/bozuk dosya ve güvenilmeyen yönlendirme durumlarında kurulum başlatılmaz. Dosya çalıştırılmadan önce tekrar doğrulanır.
+- Türkçe ve İngilizce arayüz ve yardım güncellendi. Mevcut paketler imzasızdır; SignPath Foundation uygunluk sınırı SIGNING.md içinde açıklanır.
+
 # 1.0.1
 
 - Radyo ve Favoriler sağ tık menüsüne anlık kayıt başlat/durdur ve kayıt klasörünü aç eklendi. Uygulamalar tuşu ve Shift+F10 aynı menüyü açar.

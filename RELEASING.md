@@ -1,3 +1,13 @@
+# Verified release publication
+
+A push to main runs regression tests, builds packages, checks archive hashes and installs 1.0.1 followed by the new installer on a disposable Windows runner. Packaged startup must preserve settings, favourites, progress and a pre-upgrade backup. Only after these checks pass does the workflow publish a release for the source VERSION. Existing releases are preserved. Increment VERSION before preparing a new release. The versioned CHANGELOG section supplies release notes; the published source commit is tagged by GitHub CLI. Manual workflow_dispatch remains available.
+
+In-app installation passes RESTARTAPP=1 to request launch after silent setup; ordinary silent installation does not unexpectedly open the application. Download and launch tests reject missing hashes, changed files and untrusted redirects. Installer integration uses isolated APPDATA on CI and refuses to run on an ordinary computer.
+
+Packages are currently unsigned. SIGNING.md records the dependency-license obstacle to SignPath Foundation and the requirements for a future signing workflow. Never present checksum verification as publisher authentication.
+
+---
+
 # Desktop release process
 
 The configured target is `selcukucar/freeAudio-desktop`. Remote publication status must be verified separately; configuration alone does not publish a repository or release.

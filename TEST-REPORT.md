@@ -1,3 +1,17 @@
+# freeAudio Desktop 1.1.0 — regression verification
+
+Date: 2026-11-09. Windows x64. Packages remain unsigned.
+
+- 79 automated tests passed locally, including the real audio device test. Playback cases cover stopping during delayed profile resolution, cancelling startup resume before its callback, explicit replay after cancellation and nonblocking stop without interrupting independent recordings.
+- Update cases cover exact release/asset matching, missing hashes, corrupt/truncated/oversized data, cancellation cleanup, rejecting untrusted redirects, rechecking before execution and refusing to execute portable ZIPs.
+- Shutdown tests verify saving before shutdown, closing audio before launching the installer, and keeping the application running if the downloaded update changes before installation.
+- The new downloader fetched the published 1.0.1 installer (51,398,564 bytes) and verified its GitHub SHA-256 digest. The downloaded old installer was not executed against the user's installation.
+- Main and library expose native Stop Playback buttons; startup resume focuses the main Stop button. F8 and the global Stop command use the cancellation path. Turkish and English help explain independent recording and portable updates.
+- Packaged startup, installed upgrade and publication checks are recorded in the adjacent versioned verification report after execution. Physical braille and exhaustive NVDA/JAWS listening tests remain outside these automated checks.
+- SignPath Foundation eligibility is blocked by the current proprietary BASS dependency under the published component-license requirements; see SIGNING.md. No signing approval or malware-detection guarantee is claimed.
+
+---
+
 # freeAudio Desktop 1.0.1 — recording verification
 
 Date: 2026-11-04. Windows x64.

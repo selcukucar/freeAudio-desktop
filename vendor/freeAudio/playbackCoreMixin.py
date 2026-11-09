@@ -967,7 +967,7 @@ class PlaybackCoreMixin:
 		self._nav_dispatch(gesture, 1, True)
 
 
-	def _resume_last_station(self):
+	def _resume_last_station(self, startup=False):
 		url  = config.conf["freeAudio"].get("last_station_url", "").strip()
 		name = config.conf["freeAudio"].get("last_station_name", "").strip()
 		uuid = config.conf["freeAudio"].get("last_station_uuid", "").strip()

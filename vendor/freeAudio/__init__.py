@@ -648,7 +648,7 @@ class GlobalPlugin(BookmarkMixin, ObligatoMixin, MiscTogglesMixin, TrackInfoMixi
 			play_callback=self._on_station_selected,
 		)
 		if config.conf["freeAudio"].get("resume_on_start"):
-			wx.CallAfter(self._resume_last_station)
+			wx.CallAfter(self._resume_last_station, startup=True)
 		wx.CallAfter(self._build_tools_menu)
 		# Check for updates in the background after a short delay
 		if config.conf["freeAudio"].get("auto_check_updates", True):

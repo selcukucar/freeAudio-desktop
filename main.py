@@ -9,6 +9,7 @@ import sys
 import threading
 import traceback
 import wx
+import wx.lib.scrolledpanel
 from desktop.storage import Settings, data_directory
 from desktop.host import install, SettingsDialog
 from desktop.version import VERSION
@@ -38,16 +39,21 @@ class DesktopFrame(wx.Frame):
         self._closing = False
         self._update_check_running = False
         self._save_error_reported = False
+        self._pending_update = None
         _ = translate
         self.SetTitle('freeAudio Desktop ' + VERSION)
         self.SetSize((700, 440))
         self.shortcuts = Shortcuts(self, plugin, settings, notifications.message)
-        panel = wx.Panel(self, style=wx.TAB_TRAVERSAL)
+        panel = wx.lib.scrolledpanel.ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
         notifications.control.Reparent(panel)
         outer = wx.BoxSizer(wx.VERTICAL)
         heading = wx.StaticText(panel, label=_('Radio, podcasts, audio books and local music'))
         outer.Add(heading, 0, wx.ALL, 16)
         browser = wx.Button(panel, label=_('&Open library'))
+        self._playback_status = wx.StaticText(panel, label=_('Playback stopped'))
+        outer.Add(self._playback_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        self._stop_button = wx.Button(panel, label=_('&Stop playback (F8)'))
+        pause = wx.Button(panel, label=_('&Pause / resume playback'))
         settings_button = wx.Button(panel, label=_('&Settings'))
         commands = wx.Button(panel, label=_('&Commands and shortcuts'))
         messages = wx.Button(panel, label=_('&Notification history'))
@@ -56,15 +62,18 @@ class DesktopFrame(wx.Frame):
         help_button = wx.Button(panel, label=_('&Help'))
         backup_button = wx.Button(panel, label=_('Profile &backup and restore'))
         exit_button = wx.Button(panel, label=_('E&xit'))
-        for button in (browser, settings_button, commands, messages, language, updates, backup_button, help_button, exit_button):
+        for button in (self._stop_button, pause, browser, settings_button, commands, messages, language, updates, backup_button, help_button, exit_button):
             outer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         outer.Add(notifications.control, 0, wx.EXPAND | wx.ALL, 10)
         panel.SetSizer(outer)
+        panel.SetupScrolling(scroll_x=False)
         frame_sizer = wx.BoxSizer(wx.VERTICAL)
         frame_sizer.Add(panel, 1, wx.EXPAND)
         self.SetSizer(frame_sizer)
         self.SetMinSize((640, 460))
-        self.SetSize((760, 500))
+        self.SetSize((760, 620))
+        self._stop_button.Bind(wx.EVT_BUTTON, lambda event: self.stop_playback())
+        pause.Bind(wx.EVT_BUTTON, lambda event: self.pause_playback())
         browser.Bind(wx.EVT_BUTTON, lambda event: plugin._open_dialog())
         settings_button.Bind(wx.EVT_BUTTON, lambda event: self._popupSettingsDialog())
         commands.Bind(wx.EVT_BUTTON, lambda event: self.shortcuts.show(self, _))
@@ -75,7 +84,14 @@ class DesktopFrame(wx.Frame):
         backup_button.Bind(wx.EVT_BUTTON, self.backup_profile)
         exit_button.Bind(wx.EVT_BUTTON, lambda event: self.Close())
         self.Bind(wx.EVT_CLOSE, self.exit)
-        browser.SetFocus()
+        if settings['freeAudio'].get('resume_on_start') and settings['freeAudio'].get('last_station_url'):
+            self._stop_button.SetFocus()
+        else:
+            browser.SetFocus()
+        self.Bind(wx.EVT_CHAR_HOOK, self.playback_key)
+        self._playback_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.refresh_playback_status, self._playback_timer)
+        self._playback_timer.Start(500)
         if self.shortcuts.failures:
             wx.CallAfter(notifications.message, _('Some shortcuts are unavailable. Open Commands and shortcuts for details.'))
         self._autosave = wx.Timer(self)
@@ -84,6 +100,60 @@ class DesktopFrame(wx.Frame):
             self.shortcuts.refresh_catalog()
         self.Bind(wx.EVT_TIMER, autosave, self._autosave)
         self._autosave.Start(10000)
+
+    def playback_key(self, event):
+        if event.GetKeyCode() == wx.WXK_F8:
+            self.stop_playback()
+        else:
+            event.Skip()
+
+    def refresh_playback_status(self, event=None):
+        if self._closing:
+            return
+        player = self.plugin._player
+        if player.has_media():
+            label = self.translate('Current media: %s') % player.get_current_name()
+        else:
+            label = self.translate('Playback stopped')
+        if self._playback_status.GetLabel() != label:
+            self._playback_status.SetLabel(label)
+
+    def stop_playback(self):
+        if self._closing:
+            return
+        token = self._playback_gate.cancel()
+        timer = getattr(self.plugin, '_pause_resume_timer', None)
+        if timer:
+            timer.Stop()
+            self.plugin._pause_resume_timer = None
+        self.notifications.message(self.translate('Stopping playback...'))
+        def finish(error):
+            if self._closing or token != self._playback_gate.current:
+                return
+            self.refresh_playback_status()
+            self.notifications.message(self.translate('Could not stop playback. Please try again.') if error else
+                                       self.translate('Playback stopped. Recordings continue independently.'))
+        def work():
+            error = None
+            try:
+                def stop():
+                    self.plugin._player.stop()
+                    self.plugin._stations = []
+                    self.plugin._current_index = -1
+                self._playback_gate.run(token, stop)
+            except Exception as exc:
+                logging.exception('Could not stop playback')
+                error = exc
+            wx.CallAfter(finish, error)
+        threading.Thread(target=work, daemon=True, name='desktop-stop-playback').start()
+
+    def pause_playback(self):
+        if not self.plugin._player.has_media():
+            self.notifications.message(self.translate('No media is playing. Open the library to choose media.'))
+            return
+        from desktop.host import invoke
+        from types import SimpleNamespace
+        invoke(self.plugin.script_pauseResume, SimpleNamespace(send=lambda: None))
 
     def history(self, event):
         _ = self.translate
@@ -138,10 +208,7 @@ class DesktopFrame(wx.Frame):
                     self.notifications.message(_('No newer release was found.'))
             else:
                 version, url = result
-                if wx.MessageBox(_('A new version is available. Open the download page?') + '\n' + version,
-                                 'freeAudio Desktop', wx.YES_NO | wx.ICON_INFORMATION, self) == wx.YES:
-                    import webbrowser
-                    webbrowser.open(url)
+                self.offer_update(version, url)
         def work():
             try:
                 result = check_release(repository, VERSION)
@@ -150,6 +217,39 @@ class DesktopFrame(wx.Frame):
                 logging.exception('Update check failed')
                 wx.CallAfter(finish, None, str(error))
         threading.Thread(target=work, daemon=True).start()
+
+    def offer_update(self, version, url):
+        _ = self.translate
+        portable = (APP_DIR / 'portable.flag').exists()
+        installed = bool(getattr(sys, 'frozen', False) and not portable)
+        first = _('Download and install update (application restarts)') if installed else _('Download portable update ZIP')
+        choices = [first, _('Download only'), _('Open release page')]
+        with wx.SingleChoiceDialog(self, _('A new version is available: %s') % version,
+                                   _('Application update'), choices) as choice:
+            if choice.ShowModal() != wx.ID_OK:
+                return
+            selection = choice.GetSelection()
+        if selection == 2:
+            import webbrowser
+            webbrowser.open(url)
+            return
+        from desktop.update_dialog import UpdateDownloadDialog
+        repository = self.settings['desktop']['update_repository']
+        with UpdateDownloadDialog(self, repository, version, portable or not installed,
+                                  self.settings.directory / 'updates', _) as dialog:
+            if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
+                return
+            asset, path = dialog.result
+        if installed and selection == 0:
+            if not self.persist_settings():
+                return
+            self._pending_update = (asset, path)
+            self.Close()
+        else:
+            wx.MessageBox(_('The verified update was saved to: %s') % str(path) + '\n\n' +
+                          (_('For portable updates, close the application and preserve your data folder when extracting the new ZIP.') if asset.portable else ''),
+                          _('Application update'), wx.OK | wx.ICON_INFORMATION, self)
+            os.startfile(str(path.parent))
 
     def backup_profile(self, event):
         from desktop.backup import export_profile, prepare_restore
@@ -201,16 +301,47 @@ class DesktopFrame(wx.Frame):
         if event.CanVeto() and (recorder.is_recording() or recorder.get_active_scheduled()):
             if wx.MessageBox(self.translate('A recording is in progress. Stop recording and exit?'),
                              'freeAudio Desktop', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, self) != wx.YES:
+                self._pending_update = None
                 event.Veto()
                 return
+        pending_update = getattr(self, '_pending_update', None)
+        if pending_update is not None:
+            try:
+                from desktop.updates import verify_download
+                verify_download(*pending_update)
+                if not self.persist_settings():
+                    self._pending_update = None
+                    if event.CanVeto():
+                        event.Veto()
+                    return
+            except Exception:
+                logging.exception('Update changed before installation')
+                self._pending_update = None
+                wx.MessageBox(self.translate('The update could not be verified. Installation was cancelled.'),
+                              self.translate('Error'), wx.OK | wx.ICON_ERROR, self)
+                if event.CanVeto():
+                    event.Veto()
+                return
         self._closing = True
+        if hasattr(self, '_playback_gate'):
+            self._playback_gate.cancel()
+        if hasattr(self, '_playback_timer'):
+            self._playback_timer.Stop()
         self._autosave.Stop()
         self.shortcuts.close()
         try:
             self.plugin.terminate()
         finally:
             try:
-                self.persist_settings()
+                saved = self.persist_settings()
+                if pending_update is not None and saved:
+                    try:
+                        from desktop.updates import launch_installer
+                        launch_installer(*pending_update, APP_DIR, self.settings['desktop'].get('language', 'tr'))
+                    except Exception:
+                        logging.exception('Could not start the downloaded installer')
+                        wx.MessageBox(self.translate('The installer could not be started. The verified download is kept in your profile updates folder.'),
+                                      self.translate('Error'), wx.OK | wx.ICON_ERROR, self)
             finally:
                 self.Destroy()
 
@@ -274,6 +405,16 @@ def main():
         freeAudio.GlobalPlugin._build_tools_menu = lambda self: None
         freeAudio.GlobalPlugin._check_for_updates = lambda self, silent=False: frame.check_updates(silent)
         freeAudio._cleanup_orphaned_timeshift_buffers = lambda: None
+        from desktop.playback import PlaybackGate, install_playback_gate
+        frame._playback_gate = PlaybackGate()
+        install_playback_gate(freeAudio.GlobalPlugin, frame._playback_gate)
+        freeAudio.GlobalPlugin._stop_from_dialog = lambda self: frame.stop_playback()
+        original_stop = freeAudio.GlobalPlugin.script_stop
+        def desktop_stop(self, gesture):
+            frame.stop_playback()
+        desktop_stop.__dict__.update(original_stop.__dict__)
+        desktop_stop.__doc__ = original_stop.__doc__
+        freeAudio.GlobalPlugin.script_stop = desktop_stop
         plugin = freeAudio.GlobalPlugin()
         globalPluginHandler.runningPlugins.append(plugin)
         frame.build(plugin, settings, translate, notifications)
@@ -281,10 +422,16 @@ def main():
             wx.CallAfter(notifications.message, translate('The automatic backup could not be created. Your existing profile was not changed.'))
         app.SetTopWindow(frame)
         frame.Show()
+        if settings['freeAudio'].get('resume_on_start') and settings['freeAudio'].get('last_station_url'):
+            wx.CallAfter(frame._stop_button.SetFocus)
         exit_code = 0
         if args.smoke_test:
             def smoke_checks():
+                if frame._stop_button.GetLabel() != translate('&Stop playback (F8)'):
+                    raise RuntimeError('Main stop button label regression')
                 plugin._open_dialog()
+                if plugin._dialog._stop_btn.GetLabel() != translate('&Stop playback (F8)'):
+                    raise RuntimeError('Library stop button label regression')
                 from freeAudio.settingsPanel import freeAudioSettingsPanel
                 settings_dialog = SettingsDialog(frame, freeAudioSettingsPanel, settings, translate)
                 panel = settings_dialog.panel
@@ -305,18 +452,20 @@ def main():
                 with wave.open(str(wave_path), 'wb') as sound:
                     sound.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
                     sound.writeframes(b'\0\0' * 16000 * 5)
-                engine = freeAudio.radioPlayer._BassEngine(str(Path(freeAudio.__file__).parent))
-                try:
-                    if not engine.load():
-                        raise RuntimeError('Packaged BASS host failed: ' + str(engine.get_stderr_tail()))
-                    if not engine.play(str(wave_path.resolve()), volume_0_1=0, seekable=True):
-                        raise RuntimeError('Packaged audio playback failed')
-                    time.sleep(.1)
-                    audio_ok, position, length = engine.timeshift_seek(2)
-                    if not audio_ok or length < 4.9:
-                        raise RuntimeError('Packaged audio seek failed')
-                finally:
-                    engine.unload()
+                audio_ok = None  # CI runners may have no audio output device.
+                if os.environ.get('FREEAUDIO_SKIP_AUDIO_DEVICE_TEST') != '1':
+                    engine = freeAudio.radioPlayer._BassEngine(str(Path(freeAudio.__file__).parent))
+                    try:
+                        if not engine.load():
+                            raise RuntimeError('Packaged BASS host failed: ' + str(engine.get_stderr_tail()))
+                        if not engine.play(str(wave_path.resolve()), volume_0_1=0, seekable=True):
+                            raise RuntimeError('Packaged audio playback failed')
+                        time.sleep(.1)
+                        audio_ok, position, length = engine.timeshift_seek(2)
+                        if not audio_ok or length < 4.9:
+                            raise RuntimeError('Packaged audio seek failed')
+                    finally:
+                        engine.unload()
                 (directory / 'smoke-test.json').write_text(json.dumps({
                     'version': VERSION, 'language': language,
                     'tabs': plugin._dialog._notebook.GetPageCount(),

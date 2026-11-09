@@ -6754,6 +6754,89 @@ msgid ""
 msgstr ""
 "Kayıt başlatılamadı. İstasyon bağlantısını ve kayıt klasörünü kontrol edin."
 
+msgid "&Stop playback (F8)"
+msgstr "Oynatmayı &durdur (F8)"
+
+msgid "&Pause / resume playback"
+msgstr "Oynatmayı d&uraklat / sürdür"
+
+msgid "Playback stopped"
+msgstr "Oynatma durduruldu"
+
+msgid "Current media: %s"
+msgstr "Geçerli medya: %s"
+
+msgid "Stopping playback..."
+msgstr "Oynatma durduruluyor..."
+
+msgid "Could not stop playback. Please try again."
+msgstr "Oynatma durdurulamadı. Lütfen yeniden deneyin."
+
+msgid "Playback stopped. Recordings continue independently."
+msgstr "Oynatma durduruldu. Kayıtlar bağımsız olarak devam eder."
+
+msgid "No media is playing. Open the library to choose media."
+msgstr "Medya çalmıyor. Medya seçmek için kütüphaneyi açın."
+
+msgid "Download and install update (application restarts)"
+msgstr "Güncellemeyi indir ve kur (uygulama yeniden başlar)"
+
+msgid "Download portable update ZIP"
+msgstr "Taşınabilir güncelleme ZIP dosyasını indir"
+
+msgid "Download only"
+msgstr "Yalnızca indir"
+
+msgid "Open release page"
+msgstr "Sürüm sayfasını aç"
+
+msgid "A new version is available: %s"
+msgstr "Yeni bir sürüm var: %s"
+
+msgid "Application update"
+msgstr "Uygulama güncellemesi"
+
+msgid "Downloading update"
+msgstr "Güncelleme indiriliyor"
+
+msgid "Preparing verified download..."
+msgstr "Doğrulanmış indirme hazırlanıyor..."
+
+msgid "Download progress"
+msgstr "İndirme ilerlemesi"
+
+msgid "Cancelling download..."
+msgstr "İndirme iptal ediliyor..."
+
+msgid "Downloading update: %d%%"
+msgstr "Güncelleme indiriliyor: %%%d"
+
+msgid ""
+"The update could not be downloaded or verified. Please try again later."
+msgstr ""
+"Güncelleme indirilemedi veya doğrulanamadı. Lütfen daha sonra yeniden "
+"deneyin."
+
+msgid "The verified update was saved to: %s"
+msgstr "Doğrulanmış güncelleme şuraya kaydedildi: %s"
+
+msgid ""
+"For portable updates, close the application and preserve your data folder "
+"when extracting the new ZIP."
+msgstr ""
+"Taşınabilir güncellemede uygulamayı kapatın ve yeni ZIP dosyasını açarken "
+"data klasörünüzü koruyun."
+
+msgid "The update could not be verified. Installation was cancelled."
+msgstr "Güncelleme doğrulanamadı. Kurulum iptal edildi."
+
+msgid ""
+"The installer could not be started. The verified download is kept in your "
+"profile updates folder."
+msgstr ""
+"Kurulum başlatılamadı. Doğrulanmış dosya profilinizdeki updates klasöründe "
+"saklanıyor."
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

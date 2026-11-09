@@ -818,9 +818,10 @@ class RadioDialog(wx.Dialog):
 
 
 		# action buttons
-		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		btn_sizer = wx.WrapSizer(wx.HORIZONTAL)
 		# Translators: Button label; plays or pauses the currently selected/playing station.
 		self._play_btn    = wx.Button(self, label=_("&Play/Pause"))
+		self._stop_btn = wx.Button(self, label=_("&Stop playback (F8)"))
 		# Translators: Button label; removes the selected custom station (only enabled for user-added stations, not the built-in catalog).
 		self._del_btn     = wx.Button(self, label=_("&Delete Station"))
 		self._del_btn.Enable(False)
@@ -841,7 +842,7 @@ class RadioDialog(wx.Dialog):
 		)
 		# Translators: Button label; closes the station browser dialog.
 		self._close_btn   = wx.Button(self, label=_("&Close"))
-		for btn in (self._play_btn, self._del_btn, self._fav_btn, self._details_btn, self._add_btn, self._refresh_catalog_btn, self._close_btn):
+		for btn in (self._play_btn, self._stop_btn, self._del_btn, self._fav_btn, self._details_btn, self._add_btn, self._refresh_catalog_btn, self._close_btn):
 			btn_sizer.Add(btn, 0, wx.ALL, 5)
 		main_sizer.Add(btn_sizer, 0, wx.CENTER | wx.BOTTOM, 8)
 
@@ -869,6 +870,7 @@ class RadioDialog(wx.Dialog):
 		self._build_jukebox_tab()
 
 		self._play_btn.Bind(wx.EVT_BUTTON,    self._on_play_clicked)
+		self._stop_btn.Bind(wx.EVT_BUTTON, lambda event: self._plugin._stop_from_dialog() if self._plugin else None)
 		self._del_btn.Bind(wx.EVT_BUTTON,     self._on_delete_station)
 		self._del_btn.Bind(wx.EVT_KEY_DOWN,   self._on_del_btn_key)
 		self._fav_btn.Bind(wx.EVT_BUTTON,     self._on_toggle_favorite)

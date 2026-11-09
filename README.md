@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.0.1
+# freeAudio Desktop 1.1.0
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -10,6 +10,14 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 - Ana pencerede **Kütüphaneyi aç**, **Ayarlar**, **Komutlar ve kısayollar**, **Bildirim geçmişi**, **Dil / Language**, **Profil yedekleme ve geri yükleme** ve **Yardım** düğmeleri bulunur.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
+
+## Çalmayı durdurma ve güncelleme
+
+Ana penceredeki **Çalmayı durdur (F8)** düğmesi, listede seçim yapmadan çalmayı durdurur. Başlangıçta son dinleneni sürdür açıksa ilk odak bu düğmededir. Kütüphanede de Durdur düğmesi ve F8 kullanılabilir. Genel Ctrl+Alt+Shift+S kısayolu korunur. Durdur, henüz bağlanmakta olan yayını da iptal eder; bağımsız kayıtlar sürer.
+
+**Güncellemeleri denetle** yeni sürüm bulunduğunda indirme seçeneklerini sunar. Kurulu sürüm **Güncellemeyi indir ve kur** ile dosyayı indirir, boyutunu ve GitHub SHA-256 özetini doğrular, ayarları kaydeder ve kurulumdan sonra yeniden açılır. İndirme iptal edilebilir. Taşınabilir sürüm yeni ZIP dosyasını indirir; uygulamayı kapatıp ZIP dosyasını açarken kendi `data` klasörünüzü koruyun.
+
+1.0.1'den bu özelliğe geçmek için 1.1.0 kurulumunu bir kez elle çalıştırın. Sonraki sürümler uygulama içinden indirilebilir. Paketler henüz dijital imzalı değildir; dosya özeti doğrulaması yayıncı imzası yerine geçmez. İmzalama durumu: [SIGNING.md](SIGNING.md).
 
 ## Anlık radyo kaydı
 
