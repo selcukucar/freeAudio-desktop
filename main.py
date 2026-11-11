@@ -53,7 +53,7 @@ class DesktopFrame(wx.Frame):
         self._playback_status = wx.StaticText(panel, label=_('Playback stopped'))
         outer.Add(self._playback_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         self._stop_button = wx.Button(panel, label=_('&Stop playback (F8)'))
-        pause = wx.Button(panel, label=_('&Pause / resume playback'))
+        pause = wx.Button(panel, label=_('&Play / pause / resume'))
         settings_button = wx.Button(panel, label=_('&Settings'))
         commands = wx.Button(panel, label=_('&Commands and shortcuts'))
         messages = wx.Button(panel, label=_('&Notification history'))
@@ -148,12 +148,23 @@ class DesktopFrame(wx.Frame):
         threading.Thread(target=work, daemon=True, name='desktop-stop-playback').start()
 
     def pause_playback(self):
-        if not self.plugin._player.has_media():
-            self.notifications.message(self.translate('No media is playing. Open the library to choose media.'))
+        if self._closing:
             return
-        from desktop.host import invoke
-        from types import SimpleNamespace
-        invoke(self.plugin.script_pauseResume, SimpleNamespace(send=lambda: None))
+        player = self.plugin._player
+        if not player.has_media():
+            if self.settings['freeAudio'].get('last_station_url', '').strip():
+                self.plugin._resume_last_station()
+            else:
+                self.notifications.message(self.translate('No media is playing. Open the library to choose media.'))
+            return
+        # A native button is one action per activation, independent of the
+        # optional double/triple-press actions configured for global hotkeys.
+        if player.is_playing():
+            player.pause()
+            self.notifications.message(self.translate('Paused'))
+        else:
+            player.resume()
+            self.notifications.message(self.translate('Playing'))
 
     def history(self, event):
         _ = self.translate

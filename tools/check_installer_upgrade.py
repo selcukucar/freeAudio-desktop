@@ -20,7 +20,7 @@ def main():
     profile = root / 'roaming/freeAudioDesktop'
     profile.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, APPDATA=str(profile.parent), FREEAUDIO_SKIP_AUDIO_DEVICE_TEST='1')
-    old = download_update(find_asset('selcukucar/freeAudio-desktop', '1.0.1'), root / 'downloads')
+    old = download_update(find_asset('selcukucar/freeAudio-desktop', '1.1.0'), root / 'downloads')
     setup = ROOT / ('releases/freeAudio-Desktop-' + VERSION + '-win64-setup.exe')
     for installer in (old, setup):
         command = [str(installer), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/NOICONS',
@@ -30,7 +30,7 @@ def main():
         if installer == old:
             assert executable.is_file()
             (profile / 'settings.json').write_text(json.dumps({'schema_version': 1, 'settings': {
-                'desktop': {'language': 'en', 'last_version': '1.0.1'},
+                'desktop': {'language': 'en', 'last_version': '1.1.0'},
                 'freeAudio': {'legacy_migrated': True, 'volume': 37, 'resume_on_start': False,
                               'auto_check_updates': False}}}), encoding='utf-8')
             (profile / 'freeAudio_favorites.json').write_text('[{"name":"Upgrade fixture","stationuuid":"fixture"}]')
@@ -44,7 +44,7 @@ def main():
     assert json.loads((profile / 'freeAudio_favorites.json').read_text())[0]['stationuuid'] == 'fixture'
     assert json.loads((profile / 'podcast_positions.json').read_text())['episode']['position'] == 42.5
     assert (profile / ('backups/profile-before-' + VERSION + '.zip')).is_file()
-    print('Installed 1.0.1 -> ' + VERSION + ': settings, favourites, progress, backup and packaged startup OK')
+    print('Installed 1.1.0 -> ' + VERSION + ': settings, favourites, progress, backup and packaged startup OK')
 
 
 if __name__ == '__main__':

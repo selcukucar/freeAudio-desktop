@@ -1,3 +1,11 @@
+# 1.1.1
+
+- Durdur veya F8 sonrasında ana penceredeki oynatma düğmesinin son dinleneni yeniden başlatamaması düzeltildi.
+- Düğme Oynat / duraklat / sürdür olarak adlandırıldı. Medya durdurulmuşsa kayıtlı son medya yeniden açılır; medya yüklüyse duraklatılır veya sürdürülür.
+- Düğmenin hızlı ve art arda kullanımı genel kısayolların çift/üç basış ayarlarından ayrıldı; her düğme etkinleştirmesi bir oynatma işlemi yapar.
+- Son dinlenen bulunmuyorsa kütüphaneden seçim yapılmasını isteyen bildirim korunur. Kapanış sırasında yeni oynatma başlatılmaz.
+- 1.1.0 üzerine kurulum ve profil koruma denetimi yayın sürecine bağlandı.
+
 # 1.1.0
 
 - Ana pencereye ve kütüphaneye erişilebilir Durdur düğmesi eklendi. Ana pencere ve kütüphanede F8; genel Ctrl+Alt+Shift+S aynı durdurma yolunu kullanır.

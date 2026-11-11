@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.1.0
+# freeAudio Desktop 1.1.1
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -10,6 +10,10 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 - Ana pencerede **Kütüphaneyi aç**, **Ayarlar**, **Komutlar ve kısayollar**, **Bildirim geçmişi**, **Dil / Language**, **Profil yedekleme ve geri yükleme** ve **Yardım** düğmeleri bulunur.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
+
+## Durdurduktan sonra yeniden oynatma
+
+Ana penceredeki **Oynat / duraklat / sürdür** düğmesi, Durdur veya F8 ile kapattığınız son istasyonu yeniden açar. Düğmeye Tab ile gelip Boşluk ya da Enter ile etkinleştirin. Çalarken aynı düğme duraklatır; duraklatılmış medyayı sürdürür. İlk kez kullanıyorsanız ve kayıtlı son medya yoksa önce kütüphaneden bir medya seçin. Genel kısayolların çift/üç basış ayarları bu düğmeyi etkilemez.
 
 ## Çalmayı durdurma ve güncelleme
 
@@ -135,3 +139,5 @@ Closing the library keeps playback running; Exit on the main window shuts down p
 The packages are unsigned. Full screen-reader, braille and advanced-feature acceptance testing remains outstanding.
 Default hotkeys use Ctrl+Alt+Shift instead of the NVDA add-on's Windows-key bindings. Existing custom bindings remain unchanged. The command list shows assigned keys and registration failures. F12 is reserved by Windows.
 Stable updates are checked through GitHub Releases in `selcukucar/freeAudio-desktop`. Never install an NVDA add-on as a desktop update.
+
+The main **Play / pause / resume** button restarts the last saved media after Stop or F8. Use Tab to focus it, then Space or Enter. For loaded media it pauses or resumes; rapid activations are independent of global hotkey repeat actions.

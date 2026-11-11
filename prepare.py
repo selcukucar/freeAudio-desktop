@@ -6,6 +6,7 @@ from desktop.help_content import GUIDES
 
 ROOT = Path(__file__).resolve().parent
 TR = {
+    '&Play / pause / resume': '&Oynat / duraklat / sürdür',
     '&Stop playback (F8)': 'Oynatmayı &durdur (F8)',
     '&Pause / resume playback': 'Oynatmayı d&uraklat / sürdür',
     'Playback stopped': 'Oynatma durduruldu',

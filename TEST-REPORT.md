@@ -1,3 +1,15 @@
+# freeAudio Desktop 1.1.1 — stop/replay regression
+
+Date: 2026-11-11. Windows x64. Packages remain unsigned.
+
+The user reported that startup resume played radio successfully, but Stop/F8 followed by the main Pause/Resume button only announced that no media was playing. A regression test reproduced this failure before the fix. The main button now restarts the saved media when the player is empty. Loaded media still pauses/resumes; each activation is independent of hotkey double/triple-press actions. No saved media produces the existing library-selection message. Closing prevents a fresh play request.
+
+84 automated tests passed locally, including the real audio engine test and HTTP recording tests. The first full run was blocked by sandbox network restrictions; after network permission was granted all tests passed. New tests cover replay after stop, missing/blank saved URL, loaded-media pause, rapid alternating pause/resume and closing.
+
+Packaged UI replay, Turkish/English startup, profile upgrade, archive integrity and publication results are recorded in the adjacent versioned verification report after execution. Physical braille and exhaustive screen-reader listening tests are not claimed.
+
+---
+
 # freeAudio Desktop 1.1.0 — regression verification
 
 Date: 2026-11-09. Windows x64. Packages remain unsigned.

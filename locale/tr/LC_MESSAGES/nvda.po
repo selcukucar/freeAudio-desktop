@@ -6837,6 +6837,9 @@ msgstr ""
 "Kurulum başlatılamadı. Doğrulanmış dosya profilinizdeki updates klasöründe "
 "saklanıyor."
 
+msgid "&Play / pause / resume"
+msgstr "&Oynat / duraklat / sürdür"
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

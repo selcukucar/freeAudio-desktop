@@ -12,6 +12,57 @@ from main import DesktopFrame
 
 
 class PlaybackControlTests(unittest.TestCase):
+    def playback_frame(self, last_url='https://example.com/radio', has_media=False):
+        player = Mock()
+        player.has_media.return_value = has_media
+        return types.SimpleNamespace(
+            _closing=False, plugin=types.SimpleNamespace(
+                _player=player, _resume_last_station=Mock(), script_pauseResume=Mock()),
+            settings={'freeAudio': {'last_station_url': last_url}},
+            notifications=Mock(), translate=lambda text: text)
+
+    def test_play_button_restarts_last_station_after_full_stop(self):
+        frame = self.playback_frame()
+        DesktopFrame.pause_playback(frame)
+        frame.plugin._resume_last_station.assert_called_once_with()
+        frame.plugin.script_pauseResume.assert_not_called()
+        frame.notifications.message.assert_not_called()
+
+    def test_play_button_without_saved_media_explains_how_to_choose_media(self):
+        for url in ('', '   '):
+            with self.subTest(url=url):
+                frame = self.playback_frame(last_url=url)
+                DesktopFrame.pause_playback(frame)
+                frame.plugin._resume_last_station.assert_not_called()
+                frame.notifications.message.assert_called_once_with(
+                    'No media is playing. Open the library to choose media.')
+
+    def test_play_button_pauses_loaded_media(self):
+        frame = self.playback_frame(has_media=True)
+        frame.plugin._player.is_playing.return_value = True
+        DesktopFrame.pause_playback(frame)
+        frame.plugin._player.pause.assert_called_once_with()
+        frame.plugin._player.resume.assert_not_called()
+        frame.plugin.script_pauseResume.assert_not_called()
+        frame.plugin._resume_last_station.assert_not_called()
+
+    def test_rapid_button_activations_resume_without_hotkey_repeat_actions(self):
+        frame = self.playback_frame(has_media=True)
+        frame.plugin._player.is_playing.side_effect = [True, False, True, False]
+        for _ in range(4):
+            DesktopFrame.pause_playback(frame)
+        self.assertEqual(frame.plugin._player.pause.call_count, 2)
+        self.assertEqual(frame.plugin._player.resume.call_count, 2)
+        frame.plugin.script_pauseResume.assert_not_called()
+        frame.plugin._resume_last_station.assert_not_called()
+
+    def test_play_button_does_nothing_while_closing(self):
+        frame = self.playback_frame()
+        frame._closing = True
+        DesktopFrame.pause_playback(frame)
+        frame.plugin._resume_last_station.assert_not_called()
+        frame.notifications.message.assert_not_called()
+
     def test_stop_before_startup_callback_prevents_automatic_resume_but_not_manual_resume(self):
         resumed = threading.Event()
         class Plugin:
