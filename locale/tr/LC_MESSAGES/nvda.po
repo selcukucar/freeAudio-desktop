@@ -6849,6 +6849,12 @@ msgstr "Durdurma tamamlanınca yeniden oynatılacak."
 msgid "Playback will remain stopped."
 msgstr "Oynatma durdurulmuş olarak kalacak."
 
+msgid "Version %s is available. Use the update button to download it."
+msgstr "%s sürümü hazır. Güncelleme düğmesinden indirebilirsiniz."
+
+msgid "Download &update %s..."
+msgstr "%s &güncellemesini indir..."
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

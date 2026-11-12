@@ -651,7 +651,7 @@ class GlobalPlugin(BookmarkMixin, ObligatoMixin, MiscTogglesMixin, TrackInfoMixi
 			wx.CallAfter(self._resume_last_station, startup=True)
 		wx.CallAfter(self._build_tools_menu)
 		# Check for updates in the background after a short delay
-		if config.conf["freeAudio"].get("auto_check_updates", True):
+		if config.conf["freeAudio"].get("auto_check_updates", True) and not getattr(self, "_desktop_managed_updates", False):
 			t = threading.Timer(15.0, self._check_for_updates, kwargs={"silent": True})
 			t.daemon = True
 			t.start()

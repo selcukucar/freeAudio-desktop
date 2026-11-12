@@ -1,3 +1,11 @@
+# 1.1.3
+
+- Başlangıçta otomatik güncelleme denetimi açıkken uygulama açıldıktan yaklaşık 5 saniye sonra arka planda denetim yapılır.
+- Yeni sürüm ekran okuyucuya bir kez bildirilir ve ana penceredeki güncelleme düğmesinde sürüm numarasıyla gösterilir. Bildirim pencere açmaz, odağı değiştirmez ve çalmayı durdurmaz.
+- Güncelleme düğmesi bulunan sürümün indirme/kurulum seçeneklerini açar. Kullanıcı seçmeden dosya indirilmez veya kurulmaz.
+- İnternet yoksa veya yeni sürüm bulunmazsa başlangıçta gereksiz ileti verilmez. Otomatik denetim tercihi korunur.
+- Bekleyen başlangıç denetimi kapanışta iptal edilir; arka plan istekleri arayüz iş parçacığına aktarılır. Otomatik denetim sürerken yapılan elle denetim isteği kaybolmaz.
+
 # 1.1.2
 
 - Ana pencere ve kütüphanede F8 artık durdurma / son dinleneni yeniden oynatma arasında geçiş yapar. Aynı düğme odağı değiştirmeden yeniden kullanılabilir; etiketi mevcut işlevini gösterir.

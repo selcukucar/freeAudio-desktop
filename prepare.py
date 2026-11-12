@@ -6,6 +6,8 @@ from desktop.help_content import GUIDES
 
 ROOT = Path(__file__).resolve().parent
 TR = {
+    'Version %s is available. Use the update button to download it.': '%s sürümü hazır. Güncelleme düğmesinden indirebilirsiniz.',
+    'Download &update %s...': '%s &güncellemesini indir...',
     '&Play last media (F8)': '&Son dinleneni oynat (F8)',
     'Paused: %s': 'Duraklatıldı: %s',
     'Playback will restart after stopping.': 'Durdurma tamamlanınca yeniden oynatılacak.',

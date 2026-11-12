@@ -38,6 +38,10 @@ class DesktopFrame(wx.Frame):
         self.notifications = notifications
         self._closing = False
         self._update_check_running = False
+        self._update_manual_requested = False
+        self._startup_update_timer = None
+        self._available_update = None
+        self._announced_update = None
         self._save_error_reported = False
         self._pending_update = None
         self._stop_pending = None
@@ -54,13 +58,15 @@ class DesktopFrame(wx.Frame):
         browser = wx.Button(panel, label=_('&Open library'))
         self._playback_status = wx.StaticText(panel, label=_('Playback stopped'))
         outer.Add(self._playback_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        self._update_status = wx.StaticText(panel, label='')
+        outer.Add(self._update_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         self._stop_button = wx.Button(panel, label=_('&Stop playback (F8)'))
         pause = wx.Button(panel, label=_('&Play / pause / resume'))
         settings_button = wx.Button(panel, label=_('&Settings'))
         commands = wx.Button(panel, label=_('&Commands and shortcuts'))
         messages = wx.Button(panel, label=_('&Notification history'))
         language = wx.Button(panel, label=_('&Language / Dil'))
-        updates = wx.Button(panel, label=_('Check for &updates'))
+        updates = self._updates_button = wx.Button(panel, label=_('Check for &updates'))
         help_button = wx.Button(panel, label=_('&Help'))
         backup_button = wx.Button(panel, label=_('Profile &backup and restore'))
         exit_button = wx.Button(panel, label=_('E&xit'))
@@ -81,7 +87,7 @@ class DesktopFrame(wx.Frame):
         commands.Bind(wx.EVT_BUTTON, lambda event: self.shortcuts.show(self, _))
         messages.Bind(wx.EVT_BUTTON, self.history)
         language.Bind(wx.EVT_BUTTON, self.change_language)
-        updates.Bind(wx.EVT_BUTTON, lambda event: self.check_updates())
+        updates.Bind(wx.EVT_BUTTON, lambda event: self.open_update_options())
         help_button.Bind(wx.EVT_BUTTON, self.help)
         backup_button.Bind(wx.EVT_BUTTON, self.backup_profile)
         exit_button.Bind(wx.EVT_BUTTON, lambda event: self.Close())
@@ -239,6 +245,11 @@ class DesktopFrame(wx.Frame):
 
     def check_updates(self, silent=False):
         # The desktop has its own release channel. Never install an NVDA add-on.
+        if getattr(self, '_closing', False):
+            return
+        if not wx.IsMainThread():
+            wx.CallAfter(self.check_updates, silent)
+            return
         from desktop.updates import check_release
         _ = self.translate
         repository = self.settings['desktop'].get('update_repository', '')
@@ -247,22 +258,30 @@ class DesktopFrame(wx.Frame):
                 self.notifications.message(_('The update channel has not been published yet.'))
             return
         if self._update_check_running:
+            if not silent:
+                self._update_manual_requested = True
             return
         self._update_check_running = True
+        self._update_manual_requested = not silent
         def finish(result, error):
             if getattr(self, '_closing', False) or not self:
                 return
             self._update_check_running = False
+            automatic = silent and not self._update_manual_requested
+            self._update_manual_requested = False
             if error is not None:
-                if not silent:
+                if not automatic:
                     self.notifications.message(_('The update check could not be completed. Please try again later.'))
                 return
             if result is None:
-                if not silent:
+                self.clear_update_notice()
+                if not automatic:
                     self.notifications.message(_('No newer release was found.'))
             else:
                 version, url = result
-                self.offer_update(version, url)
+                self.show_update_notice(version, url, announce=automatic)
+                if not automatic:
+                    self.offer_update(version, url)
         def work():
             try:
                 result = check_release(repository, VERSION)
@@ -271,6 +290,44 @@ class DesktopFrame(wx.Frame):
                 logging.exception('Update check failed')
                 wx.CallAfter(finish, None, str(error))
         threading.Thread(target=work, daemon=True).start()
+
+    def schedule_startup_update(self):
+        if self._closing or not self.settings['desktop'].get('update_repository') or self._startup_update_timer is not None:
+            return
+        if not self.settings['freeAudio'].get('auto_check_updates', True):
+            return
+        def check():
+            self._startup_update_timer = None
+            if not self._closing and self.settings['freeAudio'].get('auto_check_updates', True):
+                self.check_updates(silent=True)
+        self._startup_update_timer = wx.CallLater(5000, check)
+
+    def show_update_notice(self, version, url, announce=True):
+        if self._closing:
+            return
+        self._available_update = (version, url)
+        message = self.translate('Version %s is available. Use the update button to download it.') % version
+        self._update_status.SetLabel(message)
+        self._update_status.Wrap(680)
+        self._updates_button.SetLabel(self.translate('Download &update %s...') % version)
+        self._update_status.GetParent().Layout()
+        if announce and self._announced_update != version:
+            self.notifications.message(message)
+        self._announced_update = version
+
+    def clear_update_notice(self):
+        self._available_update = None
+        self._update_status.SetLabel('')
+        self._updates_button.SetLabel(self.translate('Check for &updates'))
+        self._update_status.GetParent().Layout()
+
+    def open_update_options(self):
+        if self._closing:
+            return
+        if self._available_update:
+            self.offer_update(*self._available_update)
+        else:
+            self.check_updates()
 
     def offer_update(self, version, url):
         _ = self.translate
@@ -377,6 +434,9 @@ class DesktopFrame(wx.Frame):
                     event.Veto()
                 return
         self._closing = True
+        if getattr(self, '_startup_update_timer', None) is not None:
+            self._startup_update_timer.Stop()
+            self._startup_update_timer = None
         if hasattr(self, '_playback_gate'):
             self._playback_gate.cancel()
         if hasattr(self, '_playback_timer'):
@@ -457,6 +517,7 @@ def main():
         import globalPluginHandler
         # Replace host-specific actions; playback/content modules remain upstream.
         freeAudio.GlobalPlugin._build_tools_menu = lambda self: None
+        freeAudio.GlobalPlugin._desktop_managed_updates = True
         freeAudio.GlobalPlugin._check_for_updates = lambda self, silent=False: frame.check_updates(silent)
         freeAudio._cleanup_orphaned_timeshift_buffers = lambda: None
         from desktop.playback import PlaybackGate, install_playback_gate
@@ -477,6 +538,8 @@ def main():
             wx.CallAfter(notifications.message, translate('The automatic backup could not be created. Your existing profile was not changed.'))
         app.SetTopWindow(frame)
         frame.Show()
+        if not args.smoke_test:
+            frame.schedule_startup_update()
         if settings['freeAudio'].get('resume_on_start') and settings['freeAudio'].get('last_station_url'):
             wx.CallAfter(frame._stop_button.SetFocus)
         exit_code = 0

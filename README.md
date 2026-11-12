@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.1.2
+# freeAudio Desktop 1.1.3
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -18,6 +18,8 @@ Ana pencere ve kütüphanede **F8** çalan veya bağlanmakta olan medyayı durdu
 Ayrı **Oynat / duraklat / sürdür** düğmesi yüklü medyayı duraklatır ve sürdürür. Genel **Ctrl+Alt+Shift+S** her zaman yalnızca durdurur. Bağımsız radyo kayıtları bu oynatma işlemlerinden etkilenmez. Kayıtlı son medya yoksa önce kütüphaneden bir medya seçin.
 
 ## Güncelleme
+
+Ayarlardaki **Başlangıçta güncellemeleri otomatik denetle** seçeneği açıkken, uygulama açıldıktan yaklaşık 5 saniye sonra arka planda denetim yapılır. Yeni sürüm varsa ekran okuyucuya bir kez bildirilir; ana penceredeki güncelleme düğmesi sürüm numarasıyla indirme seçeneğine dönüşür. Odak ve çalma korunur. Bu düğmeden indirme/kurulum seçeneklerini açabilirsiniz. İnternet yoksa veya yeni sürüm bulunmazsa başlangıçta ileti verilmez. Siz seçmeden indirme ya da kurulum başlatılmaz.
 
 **Güncellemeleri denetle** yeni sürüm bulunduğunda indirme seçeneklerini sunar. Kurulu sürüm **Güncellemeyi indir ve kur** ile dosyayı indirir, boyutunu ve GitHub SHA-256 özetini doğrular, ayarları kaydeder ve kurulumdan sonra yeniden açılır. İndirme iptal edilebilir. Taşınabilir sürüm yeni ZIP dosyasını indirir; uygulamayı kapatıp ZIP dosyasını açarken kendi `data` klasörünüzü koruyun.
 
@@ -143,3 +145,5 @@ Stable updates are checked through GitHub Releases in `selcukucar/freeAudio-desk
 The main **Play / pause / resume** button restarts the last saved media after Stop or F8. Use Tab to focus it, then Space or Enter. For loaded media it pauses or resumes; rapid activations are independent of global hotkey repeat actions.
 
 F8 in the main window and library toggles Stop / Play Last Media without moving focus. The same button changes its label and keeps focus. A second press during a slow stop queues playback, and a third cancels that queued request. Held-key repeats are ignored; Ctrl+Alt+Shift+S remains stop-only.
+
+When automatic startup checks are enabled, the application checks after about five seconds. A new release is announced once and shown on the update button, without a modal window, focus change or playback interruption. Use the button to open download/install options. No download starts without your choice. Offline or up-to-date startups remain quiet.

@@ -1,3 +1,13 @@
+# freeAudio Desktop 1.1.3 — automatic startup update notice
+
+Date: 2026-11-12. Windows x64. Packages remain unsigned.
+
+Startup discovery is scheduled by the desktop UI after five seconds, respecting the existing automatic-check preference. The desktop suppresses the inherited background timer to avoid duplicate scheduling. New releases produce a persistent native status/button plus a single accessible notification per version per session. Automatic checks do not open a modal window, change focus, stop audio or initiate downloads. Manual checks still open update options; a manual request during an automatic request is retained. Offline/no-new-version startup results remain quiet. Shutdown cancels pending startup work and late results are ignored.
+
+The initial full suite passed 102 tests. A shutdown-timer regression check was then added; final test, package and publication results are recorded in the adjacent versioned verification report. New cases cover scheduling, disabled preferences, cancellation, single announcements, quiet failures, manual coalescing and main-thread dispatch. Full screen-reader listening and physical braille acceptance are not claimed.
+
+---
+
 # freeAudio Desktop 1.1.2 — transport and stability review
 
 Date: 2026-11-12. Windows x64. Packages remain unsigned.

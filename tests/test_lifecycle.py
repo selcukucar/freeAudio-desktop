@@ -80,6 +80,16 @@ class LifecycleTests(unittest.TestCase):
         self.assertFalse(frame._closing)
         self.assertIsNone(frame._pending_update)
 
+    def test_shutdown_cancels_scheduled_startup_update(self):
+        frame = self.frame()
+        frame._startup_update_timer = Mock()
+        timer = frame._startup_update_timer
+        frame.plugin._recorder.is_recording.return_value = False
+        frame.plugin._recorder.get_active_scheduled.return_value = []
+        DesktopFrame.exit(frame, Mock())
+        timer.Stop.assert_called_once()
+        self.assertIsNone(frame._startup_update_timer)
+
     def test_save_failure_notifies_once_until_next_success(self):
         frame = self.frame()
         frame.settings.save.side_effect = [OSError('disk full'), OSError('disk full'), None, OSError('disk full')]
