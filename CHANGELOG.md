@@ -1,3 +1,11 @@
+# 1.2.0
+
+- Ana pencereye ses düzeyi alanı, Sesi azalt ve Sesi artır düğmeleri eklendi. Kütüphane açılmadan F5/F6 ile ses beşer puan değiştirilebilir; alana doğrudan değer yazıp Enter ile uygulanabilir.
+- Ses alanı oynatıcı, kütüphane ve genel kısayollarla eşzamanlıdır. Kullanıcı sayı yazarken otomatik yenileme yazılan değeri değiştirmez. Mevcut 0–200 ses aralığı ve 100 üzerindeki yükseltmenin oturumluk davranışı korunur.
+- Ana pencere, standart Windows kontrolleriyle Oynatma ve Kütüphane ve uygulama gruplarına ayrıldı. Başlık ve çalan medya daha belirgin, düğmeler daha yüksek ve düzen iki sütunludur; dar pencerede tek sütuna geçilir.
+- Mevcut pencereler, sekmeler, komutlar, başlangıç davranışı, F8 geçişi ve genel kısayollar korunur. Ses alanının düzenlenebilir native bölümünün ekran okuyucu adı ayrıca doğrulandı.
+- Windows sistem renkleri ve yazı tipi kullanılır; özel çizilmiş düğme veya yeni bir gezinme katmanı eklenmez. Yeni arayüz testleri Türkçe/İngilizce adları, klavye sırasını ve dar pencere genişliğini denetler.
+
 # 1.1.3
 
 - Başlangıçta otomatik güncelleme denetimi açıkken uygulama açıldıktan yaklaşık 5 saniye sonra arka planda denetim yapılır.

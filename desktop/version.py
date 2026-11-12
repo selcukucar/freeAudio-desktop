@@ -1,2 +1,2 @@
 """Single source of truth for release identifiers."""
-VERSION = '1.1.3'
+VERSION = '1.2.0'

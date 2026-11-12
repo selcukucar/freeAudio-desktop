@@ -50,36 +50,22 @@ class DesktopFrame(wx.Frame):
         self.SetTitle('freeAudio Desktop ' + VERSION)
         self.SetSize((700, 440))
         self.shortcuts = Shortcuts(self, plugin, settings, notifications.message)
-        panel = wx.lib.scrolledpanel.ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
-        notifications.control.Reparent(panel)
-        outer = wx.BoxSizer(wx.VERTICAL)
-        heading = wx.StaticText(panel, label=_('Radio, podcasts, audio books and local music'))
-        outer.Add(heading, 0, wx.ALL, 16)
-        browser = wx.Button(panel, label=_('&Open library'))
-        self._playback_status = wx.StaticText(panel, label=_('Playback stopped'))
-        outer.Add(self._playback_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-        self._update_status = wx.StaticText(panel, label='')
-        outer.Add(self._update_status, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-        self._stop_button = wx.Button(panel, label=_('&Stop playback (F8)'))
-        pause = wx.Button(panel, label=_('&Play / pause / resume'))
-        settings_button = wx.Button(panel, label=_('&Settings'))
-        commands = wx.Button(panel, label=_('&Commands and shortcuts'))
-        messages = wx.Button(panel, label=_('&Notification history'))
-        language = wx.Button(panel, label=_('&Language / Dil'))
-        updates = self._updates_button = wx.Button(panel, label=_('Check for &updates'))
-        help_button = wx.Button(panel, label=_('&Help'))
-        backup_button = wx.Button(panel, label=_('Profile &backup and restore'))
-        exit_button = wx.Button(panel, label=_('E&xit'))
-        for button in (self._stop_button, pause, browser, settings_button, commands, messages, language, updates, backup_button, help_button, exit_button):
-            outer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-        outer.Add(notifications.control, 0, wx.EXPAND | wx.ALL, 10)
-        panel.SetSizer(outer)
-        panel.SetupScrolling(scroll_x=False)
-        frame_sizer = wx.BoxSizer(wx.VERTICAL)
-        frame_sizer.Add(panel, 1, wx.EXPAND)
-        self.SetSizer(frame_sizer)
-        self.SetMinSize((640, 460))
-        self.SetSize((760, 620))
+        from desktop.main_view import build_main_view
+        view = build_main_view(self, notifications, _, plugin._player.get_volume())
+        self._main_view = view
+        self._stop_button, self._playback_status = view.stop, view.status
+        self._update_status, self._updates_button = view.update_status, view.updates
+        self._volume_control = view.volume
+        self._syncing_volume = False
+        browser, pause = view.browser, view.pause
+        settings_button, commands = view.settings, view.commands
+        messages, language, updates = view.messages, view.language, view.updates
+        help_button, backup_button, exit_button = view.help, view.backup, view.exit
+        view.volume_down.Bind(wx.EVT_BUTTON, lambda event: self.adjust_volume(-5))
+        view.volume_up.Bind(wx.EVT_BUTTON, lambda event: self.adjust_volume(5))
+        self._volume_control.Bind(wx.EVT_SPINCTRL, self.on_volume_input)
+        self._volume_control.Bind(wx.EVT_TEXT_ENTER, self.on_volume_input)
+        self._volume_control.Bind(wx.EVT_KILL_FOCUS, self.on_volume_input)
         self._stop_button.Bind(wx.EVT_BUTTON, lambda event: self.toggle_playback())
         pause.Bind(wx.EVT_BUTTON, lambda event: self.pause_playback())
         browser.Bind(wx.EVT_BUTTON, lambda event: plugin._open_dialog())
@@ -110,7 +96,9 @@ class DesktopFrame(wx.Frame):
         self._autosave.Start(10000)
 
     def playback_key(self, event):
-        if event.GetKeyCode() == wx.WXK_F8 and not event.HasAnyModifiers():
+        if event.GetKeyCode() in (wx.WXK_F5, wx.WXK_F6) and not event.HasAnyModifiers():
+            self.adjust_volume(-5 if event.GetKeyCode() == wx.WXK_F5 else 5)
+        elif event.GetKeyCode() == wx.WXK_F8 and not event.HasAnyModifiers():
             if not event.IsAutoRepeat():
                 self.toggle_playback()
         else:
@@ -124,8 +112,13 @@ class DesktopFrame(wx.Frame):
             label = self.translate('Current media: %s' if player.is_playing() else 'Paused: %s') % player.get_current_name()
         else:
             label = self.translate('Playback stopped')
-        if self._playback_status.GetLabel() != label:
+        if getattr(self, '_last_playback_label', None) != label:
+            self._last_playback_label = label
             self._playback_status.SetLabel(label)
+            if getattr(self, '_main_view', None) is not None:
+                self._main_view.relayout()
+        if getattr(self, '_volume_control', None) is not None:
+            self.sync_main_volume()
         pending = getattr(self, '_stop_pending', None) is not None
         gate = getattr(self, '_playback_gate', None)
         connecting = gate is not None and gate.pending is not None and gate.pending == gate.current
@@ -134,6 +127,46 @@ class DesktopFrame(wx.Frame):
         for button in (self._stop_button, getattr(getattr(self.plugin, '_dialog', None), '_stop_btn', None)):
             if button and button.GetLabel() != button_label:
                 button.SetLabel(button_label)
+
+    def adjust_volume(self, delta):
+        if not self._closing:
+            self.set_main_volume(self.plugin._player.get_volume() + delta)
+
+    def set_main_volume(self, value):
+        if self._closing:
+            return
+        try:
+            volume = max(0, min(200, int(value)))
+            self.plugin._player.set_volume(volume)
+            self.settings['freeAudio']['volume'] = min(100, volume)
+            self.plugin._sync_dialog_volume(volume)
+            self.sync_main_volume(force=True)
+            self.notifications.message(self.translate('Volume %d') % volume)
+        except Exception:
+            logging.exception('Could not change volume')
+            self.notifications.message(self.translate('Could not change volume. Please try again.'))
+
+    def on_volume_input(self, event):
+        if not self._closing and not self._syncing_volume:
+            value = self._volume_control.GetValue()
+            if value != self.plugin._player.get_volume():
+                self.set_main_volume(value)
+        event.Skip()
+
+    def sync_main_volume(self, force=False):
+        if self._closing:
+            return
+        control = self._volume_control
+        focus = wx.Window.FindFocus()
+        if not force and focus is not None and (focus == control or control.IsDescendant(focus)):
+            return
+        volume = max(0, min(200, int(self.plugin._player.get_volume())))
+        if control.GetValue() != volume:
+            self._syncing_volume = True
+            try:
+                control.SetValue(volume)
+            finally:
+                self._syncing_volume = False
 
     def toggle_playback(self):
         if self._closing:
@@ -307,19 +340,29 @@ class DesktopFrame(wx.Frame):
             return
         self._available_update = (version, url)
         message = self.translate('Version %s is available. Use the update button to download it.') % version
+        self._update_notice_text = message
         self._update_status.SetLabel(message)
+        self._update_status.Show()
         self._update_status.Wrap(680)
         self._updates_button.SetLabel(self.translate('Download &update %s...') % version)
-        self._update_status.GetParent().Layout()
+        if getattr(self, '_main_view', None) is not None:
+            self._main_view.relayout()
+        else:
+            self._update_status.GetParent().Layout()
         if announce and self._announced_update != version:
             self.notifications.message(message)
         self._announced_update = version
 
     def clear_update_notice(self):
         self._available_update = None
+        self._update_notice_text = ''
         self._update_status.SetLabel('')
+        self._update_status.Hide()
         self._updates_button.SetLabel(self.translate('Check for &updates'))
-        self._update_status.GetParent().Layout()
+        if getattr(self, '_main_view', None) is not None:
+            self._main_view.relayout()
+        else:
+            self._update_status.GetParent().Layout()
 
     def open_update_options(self):
         if self._closing:
@@ -545,6 +588,10 @@ def main():
         exit_code = 0
         if args.smoke_test:
             def smoke_checks():
+                if frame._volume_control.GetName() != translate('Volume (%)'):
+                    raise RuntimeError('Main volume accessible name regression')
+                if frame._volume_control.GetValue() != plugin._player.get_volume():
+                    raise RuntimeError('Main volume synchronization regression')
                 frame.refresh_playback_status()
                 expected_transport = translate('&Stop playback (F8)' if plugin._player.has_media() else '&Play last media (F8)')
                 if frame._stop_button.GetLabel() != expected_transport:
@@ -596,6 +643,8 @@ def main():
                     'engine_module_path': freeAudio.__file__,
                     'local_audio_play_and_seek': audio_ok,
                     'screen_reader_bridges': [type(item).__name__ for item in notifications.outputs],
+                    'main_volume_name': frame._volume_control.GetName(),
+                    'main_volume': frame._volume_control.GetValue(),
                     'resume_label': resume_label,
                     'braille_label': braille_label,
                 }, ensure_ascii=False, indent=2), encoding='utf-8')

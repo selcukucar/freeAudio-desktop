@@ -1,3 +1,15 @@
+# freeAudio Desktop 1.2.0 — main volume and native visual layout
+
+Date: 2026-11-12. Windows x64. Packages remain unsigned.
+
+The main window now provides native volume decrease/increase buttons and an explicitly labelled SpinCtrl, plus local F5/F6. It calls the existing audio engine and library synchronization path; content windows, engine, eight library tabs, commands and F8 behavior remain unchanged. A native main-view module uses system colors/fonts, playback/application groups, larger headings/buttons and adaptive columns. Existing command controls retain their relative keyboard order; the volume controls are inserted after transport controls.
+
+111 tests passed in the initial native-layout run. Native checks cover Turkish/English labels and widget order, compact horizontal bounds, volume bounds, preference rules, editing protection and independent main-window operation. Real UI inspection confirmed F5 30 -> 25 and F6 25 -> 30 with the library closed. Inspection caught an unnamed native edit part, corrected by placing its static label directly before the SpinCtrl; the editable field then exposed Volume (%) with its current value in the accessibility tree.
+
+Actual BASS playback of silent local audio completed two volume + stop/replay/pause/resume cycles without opening the library. Final test, packaged startup, upgrade and publication results are recorded in the adjacent versioned report. Physical braille, exhaustive screen-reader listening, all high-contrast/DPI combinations and every external service remain outside these checks; no zero-defect guarantee is claimed.
+
+---
+
 # freeAudio Desktop 1.1.3 — automatic startup update notice
 
 Date: 2026-11-12. Windows x64. Packages remain unsigned.

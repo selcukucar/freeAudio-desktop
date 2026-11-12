@@ -136,6 +136,11 @@ class Notifications:
         self.history.append(text)
         self.history = self.history[-100:]
         self.control.SetLabel(text)
+        if getattr(self, 'on_layout', None) is not None:
+            try:
+                self.on_layout()
+            except Exception:
+                logging.exception('Could not lay out notification')
         output = self.active_output()
         delivered = False
         if output is not None:

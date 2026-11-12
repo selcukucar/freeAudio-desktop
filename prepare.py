@@ -6,6 +6,14 @@ from desktop.help_content import GUIDES
 
 ROOT = Path(__file__).resolve().parent
 TR = {
+    'Playback': 'Oynatma',
+    'Library and application': 'Kütüphane ve uygulama',
+    'Volume (%)': 'Ses düzeyi (%)',
+    'Decrease volume (F5)': 'Sesi azalt (F5)',
+    'Increase volume (F6)': 'Sesi artır (F6)',
+    'F5: decrease volume  |  F6: increase volume  |  F8: stop / play': 'F5: sesi azalt  |  F6: sesi artır  |  F8: durdur / oynat',
+    'Could not change volume. Please try again.': 'Ses düzeyi değiştirilemedi. Lütfen yeniden deneyin.',
+
     'Version %s is available. Use the update button to download it.': '%s sürümü hazır. Güncelleme düğmesinden indirebilirsiniz.',
     'Download &update %s...': '%s &güncellemesini indir...',
     '&Play last media (F8)': '&Son dinleneni oynat (F8)',

@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.1.3
+# freeAudio Desktop 1.2.0
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -10,6 +10,12 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 - Ana pencerede **Kütüphaneyi aç**, **Ayarlar**, **Komutlar ve kısayollar**, **Bildirim geçmişi**, **Dil / Language**, **Profil yedekleme ve geri yükleme** ve **Yardım** düğmeleri bulunur.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
+
+## Ana pencereden ses ve yeni görünüm
+
+Kütüphaneyi açmadan **F5** ile sesi 5 puan azaltın, **F6** ile 5 puan artırın. Aynı işlemler Oynatma grubundaki **Sesi azalt** ve **Sesi artır** düğmeleriyle yapılabilir. **Ses düzeyi (%)** alanına Tab ile ulaşabilir, oklarla değiştirebilir veya değer yazıp Enter ile uygulayabilirsiniz. Kütüphane ve genel ses kısayollarındaki değişiklikler de bu alanda görünür. Sayı yazarken otomatik yenileme yazınızı değiştirmez.
+
+Kütüphanedeki mevcut 0–200 aralığı korunur; 100 üzeri yükseltmedir ve yeniden açılışta kalıcı tercih 100 ile sınırlıdır. Ana pencere Oynatma ve Kütüphane ve uygulama gruplarına ayrılmıştır. Eski düğmelerin kendi aralarındaki Tab sırası ve kütüphanenin sekmeleri korunur. Dar pencerede düğmeler tek sütuna geçer; gerekirse dikey kaydırma kullanılır. Windows sistem renkleri ve native kontroller korunur.
 
 ## Odağı değiştirmeden durdurma ve yeniden oynatma
 
@@ -147,3 +153,5 @@ The main **Play / pause / resume** button restarts the last saved media after St
 F8 in the main window and library toggles Stop / Play Last Media without moving focus. The same button changes its label and keeps focus. A second press during a slow stop queues playback, and a third cancels that queued request. Held-key repeats are ignored; Ctrl+Alt+Shift+S remains stop-only.
 
 When automatic startup checks are enabled, the application checks after about five seconds. A new release is announced once and shown on the update button, without a modal window, focus change or playback interruption. Use the button to open download/install options. No download starts without your choice. Offline or up-to-date startups remain quiet.
+
+Main-window volume: F5 decreases and F6 increases by five without opening the library. The native Volume (%) field accepts arrows or a typed value committed with Enter. Library/global changes stay synchronized; active text edits are preserved. Native playback/application groups, larger type and buttons, and adaptive columns improve the presentation while keeping the existing content windows, commands and tab sequence.
