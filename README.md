@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.1.1
+# freeAudio Desktop 1.1.2
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -11,13 +11,13 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
 
-## Durdurduktan sonra yeniden oynatma
+## Odağı değiştirmeden durdurma ve yeniden oynatma
 
-Ana penceredeki **Oynat / duraklat / sürdür** düğmesi, Durdur veya F8 ile kapattığınız son istasyonu yeniden açar. Düğmeye Tab ile gelip Boşluk ya da Enter ile etkinleştirin. Çalarken aynı düğme duraklatır; duraklatılmış medyayı sürdürür. İlk kez kullanıyorsanız ve kayıtlı son medya yoksa önce kütüphaneden bir medya seçin. Genel kısayolların çift/üç basış ayarları bu düğmeyi etkilemez.
+Ana pencere ve kütüphanede **F8** çalan veya bağlanmakta olan medyayı durdurur. Yeniden F8 son dinleneni açar. Aynı düğme **Oynatmayı durdur (F8)** ile **Son dinleneni oynat (F8)** arasında etiket değiştirir; odak bu düğmede kalır. Boşluk veya Enter ile aynı düğmeyi tekrar etkinleştirebilirsiniz. Durdurma henüz tamamlanmamışsa ikinci basış yeniden oynatmayı sıraya alır; üçüncü basış bu isteği iptal eder. F8'i basılı tutmak geçişleri tekrarlamaz.
 
-## Çalmayı durdurma ve güncelleme
+Ayrı **Oynat / duraklat / sürdür** düğmesi yüklü medyayı duraklatır ve sürdürür. Genel **Ctrl+Alt+Shift+S** her zaman yalnızca durdurur. Bağımsız radyo kayıtları bu oynatma işlemlerinden etkilenmez. Kayıtlı son medya yoksa önce kütüphaneden bir medya seçin.
 
-Ana penceredeki **Çalmayı durdur (F8)** düğmesi, listede seçim yapmadan çalmayı durdurur. Başlangıçta son dinleneni sürdür açıksa ilk odak bu düğmededir. Kütüphanede de Durdur düğmesi ve F8 kullanılabilir. Genel Ctrl+Alt+Shift+S kısayolu korunur. Durdur, henüz bağlanmakta olan yayını da iptal eder; bağımsız kayıtlar sürer.
+## Güncelleme
 
 **Güncellemeleri denetle** yeni sürüm bulunduğunda indirme seçeneklerini sunar. Kurulu sürüm **Güncellemeyi indir ve kur** ile dosyayı indirir, boyutunu ve GitHub SHA-256 özetini doğrular, ayarları kaydeder ve kurulumdan sonra yeniden açılır. İndirme iptal edilebilir. Taşınabilir sürüm yeni ZIP dosyasını indirir; uygulamayı kapatıp ZIP dosyasını açarken kendi `data` klasörünüzü koruyun.
 
@@ -141,3 +141,5 @@ Default hotkeys use Ctrl+Alt+Shift instead of the NVDA add-on's Windows-key bind
 Stable updates are checked through GitHub Releases in `selcukucar/freeAudio-desktop`. Never install an NVDA add-on as a desktop update.
 
 The main **Play / pause / resume** button restarts the last saved media after Stop or F8. Use Tab to focus it, then Space or Enter. For loaded media it pauses or resumes; rapid activations are independent of global hotkey repeat actions.
+
+F8 in the main window and library toggles Stop / Play Last Media without moving focus. The same button changes its label and keeps focus. A second press during a slow stop queues playback, and a third cancels that queued request. Held-key repeats are ignored; Ctrl+Alt+Shift+S remains stop-only.

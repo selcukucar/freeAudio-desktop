@@ -175,3 +175,13 @@ class RestoreValidationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 Settings(directory)
             self.assertEqual(path.read_text(), raw)
+
+
+class NotificationShutdownTests(unittest.TestCase):
+    def test_late_notification_after_control_destruction_is_ignored(self):
+        from desktop.host import Notifications
+        frame = types.SimpleNamespace(control=None, history=[], active_output=Mock())
+        with patch('desktop.host.wx.IsMainThread', return_value=True):
+            Notifications.message(frame, 'late worker result')
+        self.assertEqual(frame.history, [])
+        frame.active_output.assert_not_called()

@@ -162,11 +162,135 @@ class PlaybackControlTests(unittest.TestCase):
         recorder.stop.assert_not_called()
         self.assertIsNone(frame.plugin._pause_resume_timer)
 
-    def test_main_window_f8_always_requests_stop(self):
+    def test_main_window_f8_toggles_playback(self):
         import wx
-        frame = types.SimpleNamespace(stop_playback=Mock())
+        frame = types.SimpleNamespace(toggle_playback=Mock())
         event = Mock()
         event.GetKeyCode.return_value = wx.WXK_F8
+        event.HasAnyModifiers.return_value = False
+        event.IsAutoRepeat.return_value = False
         DesktopFrame.playback_key(frame, event)
-        frame.stop_playback.assert_called_once()
+        frame.toggle_playback.assert_called_once()
         event.Skip.assert_not_called()
+
+    def test_modified_f8_is_not_taken_from_other_shortcuts(self):
+        import wx
+        frame = types.SimpleNamespace(toggle_playback=Mock())
+        event = Mock()
+        event.GetKeyCode.return_value = wx.WXK_F8
+        event.HasAnyModifiers.return_value = True
+        DesktopFrame.playback_key(frame, event)
+        frame.toggle_playback.assert_not_called()
+        event.Skip.assert_called_once()
+
+    def test_holding_f8_does_not_toggle_repeatedly(self):
+        import wx
+        frame = types.SimpleNamespace(toggle_playback=Mock())
+        event = Mock()
+        event.GetKeyCode.return_value = wx.WXK_F8
+        event.HasAnyModifiers.return_value = False
+        event.IsAutoRepeat.return_value = True
+        DesktopFrame.playback_key(frame, event)
+        frame.toggle_playback.assert_not_called()
+
+    def test_primary_control_stops_loaded_media_and_replays_empty_player(self):
+        frame = self.playback_frame(has_media=True)
+        frame.stop_playback, frame.pause_playback = Mock(), Mock()
+        DesktopFrame.toggle_playback(frame)
+        frame.stop_playback.assert_called_once()
+        frame.plugin._player.has_media.return_value = False
+        DesktopFrame.toggle_playback(frame)
+        frame.pause_playback.assert_called_once()
+
+    def test_labels_update_without_moving_focus_in_either_window(self):
+        frame = self.playback_frame(has_media=True)
+        frame._stop_button, frame._playback_status = Mock(), Mock()
+        library_button = Mock()
+        frame.plugin._dialog = types.SimpleNamespace(_stop_btn=library_button)
+        frame.plugin._player.get_current_name.return_value = 'Station'
+        frame.plugin._player.is_playing.return_value = True
+        DesktopFrame.refresh_playback_status(frame)
+        frame._stop_button.SetLabel.assert_called_with('&Stop playback (F8)')
+        frame.plugin._player.has_media.return_value = False
+        DesktopFrame.refresh_playback_status(frame)
+        for button in (frame._stop_button, library_button):
+            button.SetLabel.assert_called_with('&Play last media (F8)')
+            button.SetFocus.assert_not_called()
+        frame._stop_button.Disable.assert_not_called()
+
+    def test_second_press_during_slow_stop_queues_replay_and_third_cancels_it(self):
+        frame = self.playback_frame()
+        frame._playback_gate = PlaybackGate()
+        frame._stop_pending = None
+        frame._resume_after_stop = False
+        frame.refresh_playback_status = Mock()
+        frame.pause_playback = Mock()
+        started, release = threading.Event(), threading.Event()
+        def slow_stop():
+            started.set()
+            release.wait(2)
+        frame.plugin._player.stop.side_effect = slow_stop
+        for cancel in (False, True):
+            with self.subTest(cancel=cancel):
+                callbacks=[]
+                started.clear(); release.clear()
+                frame.pause_playback.reset_mock()
+                with patch('main.wx.CallAfter', side_effect=lambda fn,*args: callbacks.append((fn,args))):
+                    DesktopFrame.stop_playback(frame)
+                    self.assertTrue(started.wait(1))
+                    DesktopFrame.toggle_playback(frame)
+                    self.assertTrue(frame._resume_after_stop)
+                    if cancel:
+                        DesktopFrame.toggle_playback(frame)
+                        self.assertFalse(frame._resume_after_stop)
+                    release.set()
+                    end=time.monotonic()+2
+                    while not callbacks and time.monotonic()<end:
+                        time.sleep(.005)
+                    self.assertTrue(callbacks)
+                    callbacks[0][0](*callbacks[0][1])
+                self.assertEqual(frame.pause_playback.call_count, 0 if cancel else 1)
+                self.assertIsNone(frame._stop_pending)
+
+    def test_toggle_cancels_connection_before_any_media_is_loaded(self):
+        frame=self.playback_frame(has_media=False)
+        frame._playback_gate=PlaybackGate()
+        frame._playback_gate.request()
+        frame.stop_playback,frame.pause_playback=Mock(),Mock()
+        DesktopFrame.toggle_playback(frame)
+        frame.stop_playback.assert_called_once()
+        frame.pause_playback.assert_not_called()
+
+    def test_failed_resume_resolution_clears_pending_connection(self):
+        finished=threading.Event()
+        class Plugin:
+            _play_station=Mock()
+            _start_playing=Mock()
+            def _resume_last_station(self):
+                finished.set()
+        gate=PlaybackGate()
+        install_playback_gate(Plugin,gate)
+        Plugin()._resume_last_station()
+        self.assertTrue(finished.wait(1))
+        end=time.monotonic()+1
+        while gate.pending is not None and time.monotonic()<end:
+            time.sleep(.001)
+        self.assertIsNone(gate.pending)
+
+    def test_late_stop_completion_cannot_leave_controls_stuck_after_another_command(self):
+        frame=self.playback_frame()
+        frame._playback_gate=PlaybackGate()
+        frame.refresh_playback_status=Mock()
+        frame.pause_playback=Mock()
+        callbacks=[]
+        with patch('main.wx.CallAfter',side_effect=lambda fn,*args:callbacks.append((fn,args))):
+            DesktopFrame.stop_playback(frame)
+            end=time.monotonic()+1
+            while not callbacks and time.monotonic()<end:
+                time.sleep(.005)
+            self.assertTrue(callbacks)
+            frame._playback_gate.request()  # e.g. a global play command
+            callbacks[0][0](*callbacks[0][1])
+        self.assertIsNone(frame._stop_pending)
+        self.assertFalse(frame._resume_after_stop)
+        frame.pause_playback.assert_not_called()

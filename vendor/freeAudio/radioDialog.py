@@ -870,7 +870,7 @@ class RadioDialog(wx.Dialog):
 		self._build_jukebox_tab()
 
 		self._play_btn.Bind(wx.EVT_BUTTON,    self._on_play_clicked)
-		self._stop_btn.Bind(wx.EVT_BUTTON, lambda event: self._plugin._stop_from_dialog() if self._plugin else None)
+		self._stop_btn.Bind(wx.EVT_BUTTON, lambda event: self._plugin._toggle_from_dialog() if self._plugin else None)
 		self._del_btn.Bind(wx.EVT_BUTTON,     self._on_delete_station)
 		self._del_btn.Bind(wx.EVT_KEY_DOWN,   self._on_del_btn_key)
 		self._fav_btn.Bind(wx.EVT_BUTTON,     self._on_toggle_favorite)
@@ -4193,9 +4193,10 @@ class RadioDialog(wx.Dialog):
 					_notify(_("Playing"))
 			return
 
-		if key == wx.WXK_F8:
+		if key == wx.WXK_F8 and not event.HasAnyModifiers():
 			if self._plugin:
-				wx.CallAfter(self._plugin._stop_from_dialog)
+				if not event.IsAutoRepeat():
+					wx.CallAfter(self._plugin._toggle_from_dialog)
 			return
 
 		if key == wx.WXK_F9:

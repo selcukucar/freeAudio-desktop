@@ -1,3 +1,13 @@
+# freeAudio Desktop 1.1.2 — transport and stability review
+
+Date: 2026-11-12. Windows x64. Packages remain unsigned.
+
+Review covered the desktop playback adapter and request gate, shortcut dispatch, notifications, settings persistence, backup/restore validation, update discovery/download/install lifecycle and recording/time-shift regression coverage. F8 and the primary transport button now toggle stop/play-last in both windows without focus changes. Slow-stop replay requests are queued rather than racing audio IPC. Held F8 and modified F8 are handled separately. A late notification after the control is destroyed is ignored.
+
+93 local automated tests passed in the final verification pass, including live audio-device and local HTTP recording tests. Versioned verification results beside the packages record actual outcomes, packaged startup, live radio transitions, installer upgrades and publication. The review does not establish zero defects. Full physical braille, exhaustive screen-reader dialog listening, every external station/provider, authenticated GETEM acceptance, long-duration recordings and all Windows/device combinations are outside these checks.
+
+---
+
 # freeAudio Desktop 1.1.1 — stop/replay regression
 
 Date: 2026-11-11. Windows x64. Packages remain unsigned.

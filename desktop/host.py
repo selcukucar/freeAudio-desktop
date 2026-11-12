@@ -130,6 +130,8 @@ class Notifications:
         if not wx.IsMainThread():
             wx.CallAfter(self.message, text)
             return
+        if not self.control:
+            return
         text = str(text)
         self.history.append(text)
         self.history = self.history[-100:]

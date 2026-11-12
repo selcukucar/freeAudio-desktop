@@ -6,6 +6,10 @@ from desktop.help_content import GUIDES
 
 ROOT = Path(__file__).resolve().parent
 TR = {
+    '&Play last media (F8)': '&Son dinleneni oynat (F8)',
+    'Paused: %s': 'Duraklatıldı: %s',
+    'Playback will restart after stopping.': 'Durdurma tamamlanınca yeniden oynatılacak.',
+    'Playback will remain stopped.': 'Oynatma durdurulmuş olarak kalacak.',
     '&Play / pause / resume': '&Oynat / duraklat / sürdür',
     '&Stop playback (F8)': 'Oynatmayı &durdur (F8)',
     '&Pause / resume playback': 'Oynatmayı d&uraklat / sürdür',

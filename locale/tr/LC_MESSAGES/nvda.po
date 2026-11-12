@@ -6840,6 +6840,15 @@ msgstr ""
 msgid "&Play / pause / resume"
 msgstr "&Oynat / duraklat / sürdür"
 
+msgid "&Play last media (F8)"
+msgstr "&Son dinleneni oynat (F8)"
+
+msgid "Playback will restart after stopping."
+msgstr "Durdurma tamamlanınca yeniden oynatılacak."
+
+msgid "Playback will remain stopped."
+msgstr "Oynatma durdurulmuş olarak kalacak."
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

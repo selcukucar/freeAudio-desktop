@@ -40,6 +40,8 @@ class DesktopFrame(wx.Frame):
         self._update_check_running = False
         self._save_error_reported = False
         self._pending_update = None
+        self._stop_pending = None
+        self._resume_after_stop = False
         _ = translate
         self.SetTitle('freeAudio Desktop ' + VERSION)
         self.SetSize((700, 440))
@@ -72,7 +74,7 @@ class DesktopFrame(wx.Frame):
         self.SetSizer(frame_sizer)
         self.SetMinSize((640, 460))
         self.SetSize((760, 620))
-        self._stop_button.Bind(wx.EVT_BUTTON, lambda event: self.stop_playback())
+        self._stop_button.Bind(wx.EVT_BUTTON, lambda event: self.toggle_playback())
         pause.Bind(wx.EVT_BUTTON, lambda event: self.pause_playback())
         browser.Bind(wx.EVT_BUTTON, lambda event: plugin._open_dialog())
         settings_button.Bind(wx.EVT_BUTTON, lambda event: self._popupSettingsDialog())
@@ -102,8 +104,9 @@ class DesktopFrame(wx.Frame):
         self._autosave.Start(10000)
 
     def playback_key(self, event):
-        if event.GetKeyCode() == wx.WXK_F8:
-            self.stop_playback()
+        if event.GetKeyCode() == wx.WXK_F8 and not event.HasAnyModifiers():
+            if not event.IsAutoRepeat():
+                self.toggle_playback()
         else:
             event.Skip()
 
@@ -112,27 +115,63 @@ class DesktopFrame(wx.Frame):
             return
         player = self.plugin._player
         if player.has_media():
-            label = self.translate('Current media: %s') % player.get_current_name()
+            label = self.translate('Current media: %s' if player.is_playing() else 'Paused: %s') % player.get_current_name()
         else:
             label = self.translate('Playback stopped')
         if self._playback_status.GetLabel() != label:
             self._playback_status.SetLabel(label)
+        pending = getattr(self, '_stop_pending', None) is not None
+        gate = getattr(self, '_playback_gate', None)
+        connecting = gate is not None and gate.pending is not None and gate.pending == gate.current
+        stopping = getattr(self, '_resume_after_stop', False) if pending else player.has_media() or connecting
+        button_label = self.translate('&Stop playback (F8)' if stopping else '&Play last media (F8)')
+        for button in (self._stop_button, getattr(getattr(self.plugin, '_dialog', None), '_stop_btn', None)):
+            if button and button.GetLabel() != button_label:
+                button.SetLabel(button_label)
+
+    def toggle_playback(self):
+        if self._closing:
+            return
+        if getattr(self, '_stop_pending', None) is not None:
+            self._resume_after_stop = not self._resume_after_stop
+            self.refresh_playback_status()
+            self.notifications.message(self.translate('Playback will restart after stopping.' if self._resume_after_stop
+                                                       else 'Playback will remain stopped.'))
+        elif self.plugin._player.has_media() or (
+                getattr(self, '_playback_gate', None) is not None and
+                self._playback_gate.pending is not None and self._playback_gate.pending == self._playback_gate.current):
+            self.stop_playback()
+        else:
+            self.pause_playback()
 
     def stop_playback(self):
         if self._closing:
             return
         token = self._playback_gate.cancel()
+        self._stop_pending = token
+        self._resume_after_stop = False
         timer = getattr(self.plugin, '_pause_resume_timer', None)
         if timer:
             timer.Stop()
             self.plugin._pause_resume_timer = None
         self.notifications.message(self.translate('Stopping playback...'))
         def finish(error):
-            if self._closing or token != self._playback_gate.current:
+            if self._closing:
                 return
+            if token != self._playback_gate.current:
+                if self._stop_pending == token:
+                    self._stop_pending = None
+                    self._resume_after_stop = False
+                    self.refresh_playback_status()
+                return
+            restart = self._resume_after_stop and not error
+            self._stop_pending = None
+            self._resume_after_stop = False
             self.refresh_playback_status()
             self.notifications.message(self.translate('Could not stop playback. Please try again.') if error else
                                        self.translate('Playback stopped. Recordings continue independently.'))
+            if restart:
+                self.pause_playback()
         def work():
             error = None
             try:
@@ -149,6 +188,10 @@ class DesktopFrame(wx.Frame):
 
     def pause_playback(self):
         if self._closing:
+            return
+        if getattr(self, '_stop_pending', None) is not None:
+            self._resume_after_stop = True
+            self.refresh_playback_status()
             return
         player = self.plugin._player
         if not player.has_media():
@@ -420,6 +463,7 @@ def main():
         frame._playback_gate = PlaybackGate()
         install_playback_gate(freeAudio.GlobalPlugin, frame._playback_gate)
         freeAudio.GlobalPlugin._stop_from_dialog = lambda self: frame.stop_playback()
+        freeAudio.GlobalPlugin._toggle_from_dialog = lambda self: frame.toggle_playback()
         original_stop = freeAudio.GlobalPlugin.script_stop
         def desktop_stop(self, gesture):
             frame.stop_playback()
@@ -438,10 +482,13 @@ def main():
         exit_code = 0
         if args.smoke_test:
             def smoke_checks():
-                if frame._stop_button.GetLabel() != translate('&Stop playback (F8)'):
+                frame.refresh_playback_status()
+                expected_transport = translate('&Stop playback (F8)' if plugin._player.has_media() else '&Play last media (F8)')
+                if frame._stop_button.GetLabel() != expected_transport:
                     raise RuntimeError('Main stop button label regression')
                 plugin._open_dialog()
-                if plugin._dialog._stop_btn.GetLabel() != translate('&Stop playback (F8)'):
+                frame.refresh_playback_status()
+                if plugin._dialog._stop_btn.GetLabel() != expected_transport:
                     raise RuntimeError('Library stop button label regression')
                 from freeAudio.settingsPanel import freeAudioSettingsPanel
                 settings_dialog = SettingsDialog(frame, freeAudioSettingsPanel, settings, translate)

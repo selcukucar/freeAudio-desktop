@@ -1,3 +1,13 @@
+# 1.1.2
+
+- Ana pencere ve kütüphanede F8 artık durdurma / son dinleneni yeniden oynatma arasında geçiş yapar. Aynı düğme odağı değiştirmeden yeniden kullanılabilir; etiketi mevcut işlevini gösterir.
+- Durdurma sürerken ikinci basış yeniden oynatmayı sıraya alır; üçüncü basış bu isteği iptal eder. Durdurma ve yeniden açma aynı anda ses motorunu yönetmez.
+- Henüz bağlanmakta olan yayın F8 ile iptal edilir. Başarısız son medya çözümlemesinde bekleyen bağlantı durumu temizlenir.
+- F8 basılı tutulduğunda otomatik tuş tekrarı geçiş yapmaz. Değiştirici tuşlarla F8 kullanan diğer kısayollar korunur. Genel Ctrl+Alt+Shift+S yalnız durdurma olarak kalır.
+- Başka bir oynatma komutundan sonra geç tamamlanan durdurma işleminin kontrolleri bekleme durumunda bırakması önlendi.
+- Duraklatılmış medya durum metninde belirtilir. Kapanmış bildirim kontrolüne geç gelen mesajlar yok sayılır.
+- Oynatma, HTTP kayıt, zaman kaydırma, profil yedekleme/geri yükleme, kısayol ve güncelleme doğrulama testleri genişletildi.
+
 # 1.1.1
 
 - Durdur veya F8 sonrasında ana penceredeki oynatma düğmesinin son dinleneni yeniden başlatamaması düzeltildi.
