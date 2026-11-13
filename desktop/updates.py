@@ -178,7 +178,10 @@ def launch_installer(asset, path, app_directory, language='tr'):
     if asset.portable:
         raise ValueError('A portable ZIP cannot be executed as an installer')
     path = verify_download(asset, path)
+    from .installation import installation_scope
+    scope = installation_scope(app_directory)
     args = [str(path), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+            '/ALLUSERS' if scope == 'all' else '/CURRENTUSER',
             '/CLOSEAPPLICATIONS', '/RESTARTAPP=1', '/DIR=' + str(Path(app_directory).resolve()),
             '/LANG=' + ('turkish' if language == 'tr' else 'english'),
             '/LOG=' + str(path.parent / ('install-' + asset.version + '.log'))]

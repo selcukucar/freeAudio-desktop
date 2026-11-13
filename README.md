@@ -1,4 +1,4 @@
-# freeAudio Desktop 1.2.0
+# freeAudio Desktop 1.2.1
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -6,7 +6,7 @@ NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
 ## Çalıştırma
 
 - Taşınabilir: ZIP dosyasını yazılabilir bir klasöre tamamen çıkarın. `freeAudioDesktop.exe` dosyasını açın. ZIP içinden doğrudan çalıştırmayın. `portable.flag` dosyasını koruyun.
-- Kurulum: `win64-setup.exe` dosyasını açın. Kullanıcı hesabınıza kurulur, yönetici yetkisi istemez. Başlat menüsünden çalıştırın.
+- Kurulum: `win64-setup.exe` dosyasını açın. Yeni kurulumda önerilen Tüm kullanıcılar seçeneği Program Files klasörünü kullanır ve Windows yönetici izni ister. Yalnız bu kullanıcı seçeneği LocalAppData/Programs klasörünü kullanır. Başlat menüsünden çalıştırın.
 - Ana pencerede **Kütüphaneyi aç**, **Ayarlar**, **Komutlar ve kısayollar**, **Bildirim geçmişi**, **Dil / Language**, **Profil yedekleme ve geri yükleme** ve **Yardım** düğmeleri bulunur.
 - Dili değiştirince uygulamayı kapatıp yeniden açın.
 - Kütüphanenin Kapat düğmesi kütüphaneyi gizler; çalma ve zamanlayıcılar çalışır. Ana pencerenin Çıkış düğmesi uygulamayı tamamen kapatır ve kayıtları durdurur.
@@ -40,6 +40,14 @@ Ses verisi alındığında kayıt başladı bildirimi gelir. Durdurmak için ayn
 Kayıt sırasında dinlemeyi durdurmak veya başka istasyona geçmek kaydı değiştirmez. Her kayıt ayrı dosyaya yazılır.
 Podcast, sesli kitap ve yerel dosyalar için bu başlatma seçeneği kapalıdır. Bağlantı veya klasör hatası başarı bildirimi yerine hata verir.
 Kayıt işlemi sürerken yinelenen tıklamalar ikinci bir kayıt başlatmaz. Mevcut Ctrl+Alt+Shift+E kısayolu da kullanılabilir.
+
+## Kurulum kapsamı
+
+Yeni tüm kullanıcılar kurulumu varsayılan olarak `C:\Program Files\freeAudio Desktop` konumundadır. Yalnız bu kullanıcı kurulumu `%LOCALAPPDATA%\Programs\freeAudio Desktop` konumundadır. Mevcut kurulumu güncellerken önceki kapsam ve konum korunur; eski kullanıcı kurulumları otomatik olarak taşınmaz.
+
+Program Files'a geçmek için önce kullanıcıya özel eski uygulamayı Windows'un uygulama kaldırma bölümünden kaldırın, ardından kurulumu yeniden başlatıp Tüm kullanıcılar seçin. Ayarlar ve favoriler kaldırılmaz. İki kapsamın bu hesapta yan yana kurulması engellenir. İsterseniz geçişten önce uygulamanın profil yedekleme işleviyle yedek alın.
+
+Kurulu sürümün kullanıcı verileri her iki kipte de `%APPDATA%\freeAudioDesktop` altında kalır. Tüm kullanıcılar kurulsa bile herkes kendi profilini kullanır. Program Files içindeki uygulama normal kullanıcı yetkileriyle çalışır; yönetici izni kurulum ve program dosyası güncellemeleri içindir. Taşınabilir sürümün `data` klasörü davranışı değişmez.
 
 ## Veri ve yedekleme
 
@@ -155,3 +163,5 @@ F8 in the main window and library toggles Stop / Play Last Media without moving 
 When automatic startup checks are enabled, the application checks after about five seconds. A new release is announced once and shown on the update button, without a modal window, focus change or playback interruption. Use the button to open download/install options. No download starts without your choice. Offline or up-to-date startups remain quiet.
 
 Main-window volume: F5 decreases and F6 increases by five without opening the library. The native Volume (%) field accepts arrows or a typed value committed with Enter. Library/global changes stay synchronized; active text edits are preserved. Native playback/application groups, larger type and buttons, and adaptive columns improve the presentation while keeping the existing content windows, commands and tab sequence.
+
+New setup defaults to all users in Program Files and requests Windows elevation. Current-user setup remains available in LocalAppData/Programs. Updates preserve the existing scope and directory. To change scope, uninstall the previous application before reinstalling; Roaming profile data is retained. Both modes keep each user’s settings in %APPDATA%/freeAudioDesktop. Portable data behavior is unchanged.

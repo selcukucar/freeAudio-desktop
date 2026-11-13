@@ -1,3 +1,13 @@
+# freeAudio Desktop 1.2.1 — installation scopes
+
+Date: 2026-11-13. Windows x64. Packages remain unsigned.
+
+117 local automated tests passed before packaging. New cases cover legacy current-user fallback, both scope markers and Windows text encodings, rejecting invalid metadata before execution, explicit scope/directory update arguments and unchanged Roaming data paths. The new installer compiled locally; its loader manifest was verified as asInvoker, allowing scope selection and compatibility with previous Popen updaters before standard Windows elevation.
+
+Real default Program Files installation, per-user bootstrap upgrades, both scope updates, cross-scope conflict handling, uninstall and retained profile data are verified on disposable GitHub Windows runners. Final packaged smoke and CI/publication outcomes are recorded in the adjacent versioned verification report. Interactive UAC consent with a standard user's separate administrator credentials and full NVDA installer-dialog listening are not claimed as tested.
+
+---
+
 # freeAudio Desktop 1.2.0 — main volume and native visual layout
 
 Date: 2026-11-12. Windows x64. Packages remain unsigned.

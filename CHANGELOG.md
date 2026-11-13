@@ -1,3 +1,12 @@
+# 1.2.1
+
+- Yeni kurulumlarda tüm kullanıcılar / Program Files varsayılandır. Kurulum kipinde yalnız bu kullanıcı seçilirse LocalAppData/Programs kullanılır. Windows yönetici izni yalnız tüm kullanıcılar kurulumunda gerekir.
+- Mevcut kurulumların kapsamı ve konumu güncellemede korunur. Eski sürümün kapsam belirtmeyen güncelleyicisi de desteklenir.
+- Uygulama içi güncelleme, kurulum kapsamını açıkça iletir. Program Files kurulumu tüm kullanıcılar olarak, kullanıcıya özel kurulum aynı kullanıcı kapsamında güncellenir.
+- Ayarlar, favoriler, kitaplıklar ve ilerleme yine her Windows kullanıcısının AppData/Roaming/freeAudioDesktop klasöründedir. Kurulum ve kaldırma bu verileri taşımaz veya silmez.
+- Farklı kapsamda mevcut kurulum varsa ikinci bir kopya oluşturulmaz. Kapsamı değiştirmek için eski uygulamayı kaldırıp yeniden kurun; profil verileri korunur.
+- Windows derlemesinde eski kullanıcı kurulumundan yükseltme, varsayılan Program Files kurulumu, iki kapsamın güncellenmesi ve kapsam çakışmalarının engellenmesi test edilir.
+
 # 1.2.0
 
 - Ana pencereye ses düzeyi alanı, Sesi azalt ve Sesi artır düğmeleri eklendi. Kütüphane açılmadan F5/F6 ile ses beşer puan değiştirilebilir; alana doğrudan değer yazıp Enter ile uygulanabilir.

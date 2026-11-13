@@ -1,3 +1,13 @@
+# Installer scope verification
+
+New installations default to administrative/all-users mode using {autopf}. Inno Setup's native override dialog offers current-user installation. Existing mode/directory reuse supports older Popen updaters that do not pass scope flags. New installed applications read install-mode.ini and pass /ALLUSERS or /CURRENTUSER explicitly. Portable profiles remain unchanged.
+
+The setup loader must retain an asInvoker manifest so it can select a mode before Windows elevation. No installer code writes or deletes Roaming profile data. Opposite-scope installations for the current account are blocked rather than automatically uninstalled or duplicated. Scope changes require uninstall/reinstall; users retain their profiles.
+
+Windows CI verifies legacy 1.2.0 per-user upgrade without a scope flag, explicit current-user upgrade, both cross-scope blocks, fresh default Program Files installation, machine-scope upgrade, both uninstall operations and preserved Roaming data. These checks run only on disposable GitHub runners and refuse an unexpected existing installation. The normal desktop smoke check skips audio output on CI; actual audio is tested locally.
+
+---
+
 # Verified release publication
 
 A push to main runs regression tests, builds packages, checks archive hashes and installs 1.1.3 followed by the new installer on a disposable Windows runner. Packaged startup must preserve settings, favourites, progress and a pre-upgrade backup. Only after these checks pass does the workflow publish a release for the source VERSION. Existing releases are preserved. Increment VERSION before preparing a new release. The versioned CHANGELOG section supplies release notes; the published source commit is tagged by GitHub CLI. Manual workflow_dispatch remains available.

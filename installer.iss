@@ -1,4 +1,4 @@
-#ifndef StageDir
+﻿#ifndef StageDir
   #error StageDir is required
 #endif
 #ifndef ReleaseDir
@@ -12,9 +12,11 @@ AppId={{6F4D1BD0-00BE-47F5-9B24-5B9932EC8F20}
 AppName=freeAudio Desktop
 AppVersion={#AppVersion}
 AppVerName=freeAudio Desktop {#AppVersion}
-DefaultDirName={localappdata}\Programs\freeAudio Desktop
+DefaultDirName={autopf}\freeAudio Desktop
 DefaultGroupName=freeAudio Desktop
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog
+UsePreviousPrivileges=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
@@ -37,6 +39,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[CustomMessages]
+english.ScopeConflict=freeAudio Desktop is already installed in another install mode for this account. Update that installation, or uninstall it before changing between all-users and current-user installation. Your settings and libraries in AppData will be kept.
+turkish.ScopeConflict=freeAudio Desktop bu hesap için farklı bir kurulum kipinde zaten kurulu. Mevcut kurulumu güncelleyin veya tüm kullanıcılar / yalnız bu kullanıcı kipini değiştirmeden önce eski uygulamayı kaldırın. AppData içindeki ayarlarınız ve kitaplıklarınız korunur.
+
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Excludes: "portable.flag,data\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -45,11 +51,48 @@ Name: "{group}\freeAudio Desktop"; Filename: "{app}\freeAudioDesktop.exe"; Worki
 Name: "{group}\{cm:UninstallProgram,freeAudio Desktop}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\freeAudio Desktop"; Filename: "{app}\freeAudioDesktop.exe"; Tasks: desktopicon
 
+[INI]
+Filename: "{app}\install-mode.ini"; Section: "Install"; Key: "Scope"; String: "{code:InstallScope}"
+
+[UninstallDelete]
+Type: files; Name: "{app}\install-mode.ini"
+
 [Run]
 Filename: "{app}\freeAudioDesktop.exe"; Description: "{cm:LaunchProgram,freeAudio Desktop}"; Flags: nowait postinstall skipifsilent
 Filename: "{app}\freeAudioDesktop.exe"; Flags: nowait runasoriginaluser; Check: ShouldRestartAfterUpdate
 
 [Code]
+function InstallScope(Param: String): String;
+begin
+  if IsAdminInstallMode then
+    Result := 'all'
+  else
+    Result := 'current';
+end;
+
+function InitializeSetup: Boolean;
+var
+  OtherRoot: Integer;
+  OtherDirectory: String;
+begin
+  Result := True;
+  if IsAdminInstallMode then
+    OtherRoot := HKCU64
+  else
+    OtherRoot := HKLM64;
+  if RegQueryStringValue(OtherRoot,
+      'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F4D1BD0-00BE-47F5-9B24-5B9932EC8F20}_is1',
+      'InstallLocation', OtherDirectory) then
+  begin
+    if FileExists(AddBackslash(OtherDirectory) + 'freeAudioDesktop.exe') then
+    begin
+      Log('SCOPE_CONFLICT: ' + OtherDirectory);
+      SuppressibleMsgBox(CustomMessage('ScopeConflict'), mbError, MB_OK, IDOK);
+      Result := False;
+    end;
+  end;
+end;
+
 function ShouldRestartAfterUpdate: Boolean;
 begin
   Result := ExpandConstant('{param:RESTARTAPP|0}') = '1';

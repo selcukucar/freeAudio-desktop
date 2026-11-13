@@ -588,6 +588,8 @@ def main():
         exit_code = 0
         if args.smoke_test:
             def smoke_checks():
+                from desktop.installation import installation_scope
+                installed_scope = installation_scope(APP_DIR)
                 if frame._volume_control.GetName() != translate('Volume (%)'):
                     raise RuntimeError('Main volume accessible name regression')
                 if frame._volume_control.GetValue() != plugin._player.get_volume():
@@ -636,6 +638,7 @@ def main():
                         engine.unload()
                 (directory / 'smoke-test.json').write_text(json.dumps({
                     'version': VERSION, 'language': language,
+                    'installation_scope': installed_scope,
                     'tabs': plugin._dialog._notebook.GetPageCount(),
                     'commands': len(frame.shortcuts.commands),
                     'shortcut_failures': frame.shortcuts.failures,

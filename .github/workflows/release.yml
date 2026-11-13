@@ -39,7 +39,7 @@ jobs:
           python build.py --build-dir .build --output-dir releases --iscc $compilerPath
       - name: Verify package integrity
         run: python tools/verify_release.py releases
-      - name: Verify installed upgrade preserves the profile
+      - name: Verify install scopes and profile preservation
         run: python tools/check_installer_upgrade.py
       - name: Preserve packages for manual builds
         uses: actions/upload-artifact@v7
