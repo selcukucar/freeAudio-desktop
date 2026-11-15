@@ -53,6 +53,14 @@ class StreamingTests(unittest.TestCase):
             def log_message(self, *args):
                 pass
             def do_GET(self):
+                if self.path in ('/empty', '/truncated', '/html'):
+                    body = b'<html>Not audio</html>' if self.path == '/html' else b'abc' if self.path == '/truncated' else b''
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html' if self.path == '/html' else 'audio/mpeg')
+                    self.send_header('Content-Length', '100' if self.path == '/truncated' else str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 if self.path == '/denied':
                     self.send_error(403)
                     return
@@ -108,6 +116,38 @@ class StreamingTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(feed.episodes[0].title, 'Local Episode')
         self.assertEqual(self.podcast.PodcastManager().get_feed_by_url(feed.url).title, 'Local Podcast')
+
+    def test_podcast_download_matches_http_audio_and_leaves_no_partial_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory, 'episode.mp3')
+            self.podcast.download_episode_file(self.base + '/radio.mp3', str(target))
+            self.assertEqual(target.read_bytes(), self.payload)
+            self.assertEqual(list(Path(directory).iterdir()), [target])
+
+    def test_podcast_failed_downloads_leave_no_completed_or_partial_file(self):
+        for route in ('/denied', '/empty', '/truncated', '/html'):
+            with self.subTest(route=route), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory, 'episode.mp3')
+                with self.assertRaises(Exception):
+                    self.podcast.download_episode_file(self.base + route, str(target))
+                self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_podcast_existing_download_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory, 'episode.mp3')
+            target.write_bytes(b'previous download')
+            with self.assertRaises(FileExistsError):
+                self.podcast.download_episode_file(self.base + '/radio.mp3', str(target))
+            self.assertEqual(target.read_bytes(), b'previous download')
+
+    def test_podcast_target_disambiguates_titles_and_limits_extension(self):
+        with patch.object(self.recorder, '_recordings_dir', return_value=self.directory.name):
+            first = self.podcast.episode_download_target('Same title', self.base + '/one.mp3')[0]
+            second = self.podcast.episode_download_target('Same title', self.base + '/two.mp3')[0]
+            self.assertNotEqual(first, second)
+            self.assertEqual(first, self.podcast.episode_download_target('Same title', self.base + '/one.mp3')[0])
+            self.assertTrue(self.podcast.episode_download_target('...', self.base + '/file.exe')[1].startswith('episode-'))
+            self.assertTrue(self.podcast.episode_download_target('...', self.base + '/file.exe')[1].endswith('.mp3'))
 
     def test_instant_recording_saves_audio_without_controlling_player(self):
         player = types.SimpleNamespace(_current_url=self.base + '/radio.mp3', _current_url_resolved=None)

@@ -6507,7 +6507,7 @@ class RadioDialog(wx.Dialog):
 	def _on_episode_selected(self, event):
 		idx = self._episode_list.GetSelection()
 		has_ep = idx != wx.NOT_FOUND
-		self._episode_download_btn.Enable(has_ep)
+		self._episode_download_btn.Enable(has_ep and not getattr(self, "_podcast_downloads", None))
 		episodes = getattr(self, "_episode_filtered", None) or []
 		ep = episodes[idx] if has_ep and idx < len(episodes) else None
 		self._episode_details.ChangeValue(self._format_episode_details(ep))
@@ -6767,29 +6767,59 @@ class RadioDialog(wx.Dialog):
 			return
 		episode = episodes[idx]
 
-		out_path, filename = podcast.episode_download_target(episode.title, episode.url)
+		self._download_podcast_episode(episode)
 
-		if os.path.exists(out_path):
-			# Translators: Spoken when trying to download an episode that was already downloaded before; %s is the existing filename.
-			ui.message(_("File already exists: %s") % filename)
+	def _on_podcast_preview_download(self, event):
+		idx = self._podcast_preview_list.GetSelection()
+		episodes = getattr(self, "_podcast_preview_episodes", None) or []
+		if 0 <= idx < len(episodes):
+			self._download_podcast_episode(episodes[idx])
+
+	def _download_podcast_episode(self, episode):
+		# Capture the URL and title before starting the worker: selection may change.
+		url, title = episode.url, episode.title
+		active = getattr(self, "_podcast_downloads", None)
+		if active is None:
+			active = self._podcast_downloads = set()
+		if url in active:
+			ui.message(_("Already downloading: %s") % title)
 			return
-
-		# Translators: Spoken when an episode download starts; %s is the episode title.
-		ui.message(_("Downloading: %s") % episode.title)
+		try:
+			out_path, filename = podcast.episode_download_target(title, url)
+		except Exception as error:
+			ui.message(_("Download failed: %s") % str(error))
+			return
+		if os.path.exists(out_path):
+			ui.message(_("File already exists: %s") % out_path)
+			return
+		active.add(url)
+		ui.message(_("Downloading: %s") % title)
 		self._episode_download_btn.Disable()
 
 		def _do_download():
+			error = None
 			try:
-				podcast.download_episode_file(episode.url, out_path)
-				# Translators: Spoken when a podcast episode download finishes; %s is the saved filename.
-				wx.CallAfter(ui.message, _("Download complete: %s") % filename)
-			except Exception as e:
-				# Translators: Spoken when a podcast episode download fails; %s is the underlying error.
-				wx.CallAfter(ui.message, _("Download failed: %s") % str(e))
-			finally:
-				wx.CallAfter(self._episode_download_btn.Enable, True)
+				podcast.download_episode_file(url, out_path)
+			except Exception as exc:
+				error = str(exc)
+			wx.CallAfter(self._on_podcast_download_done, url, out_path, error)
 
-		threading.Thread(target=_do_download, daemon=True).start()
+		try:
+			threading.Thread(target=_do_download, daemon=True).start()
+		except Exception as error:
+			self._on_podcast_download_done(url, out_path, str(error))
+
+	def _on_podcast_download_done(self, url, out_path, error):
+		self._podcast_downloads.discard(url)
+		if not self:
+			return
+		if error is None:
+			ui.message(_("Download complete: %s") % out_path)
+		else:
+			ui.message(_("Download failed: %s") % error)
+		idx = self._episode_list.GetSelection()
+		episodes = getattr(self, "_episode_filtered", None) or []
+		self._episode_download_btn.Enable(0 <= idx < len(episodes) and not self._podcast_downloads)
 
 	def _set_podcast_results_visible(self, visible):
 		"""Show or hide the search-results list and the episode-preview
@@ -6972,6 +7002,10 @@ class RadioDialog(wx.Dialog):
 		label = _("&Stop Preview") if self._is_previewing(episode) else _("&Preview")
 		item_preview = menu.Append(wx.ID_ANY, label)
 		self.Bind(wx.EVT_MENU, self._on_podcast_preview_toggle, item_preview)
+
+		item_download = menu.Append(wx.ID_ANY, _("&Download Episode"))
+		item_download.Enable(episode.url not in getattr(self, "_podcast_downloads", ()))
+		self.Bind(wx.EVT_MENU, self._on_podcast_preview_download, item_download)
 
 		self.PopupMenu(menu, self._podcast_preview_list.GetScreenPosition() - self.GetScreenPosition())
 		menu.Destroy()

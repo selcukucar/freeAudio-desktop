@@ -3,6 +3,8 @@
 # RSS/Atom podcast feed parser, subscription manager, and iTunes search.
 
 import json
+import hashlib
+import tempfile
 import logging
 import os
 import time
@@ -85,7 +87,9 @@ def episode_download_target(title, url):
 	ext = os.path.splitext(url_path)[1].lower()
 	if ext not in _AUDIO_DOWNLOAD_EXTENSIONS:
 		ext = ".mp3"
-	filename = f"{safe_title}{ext}"
+	safe_title = safe_title.strip(" .") or "episode"
+	digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:12]
+	filename = f"{safe_title}-{digest}{ext}"
 	out_path = os.path.join(out_dir, filename)
 	return out_path, filename
 
@@ -95,22 +99,46 @@ def download_episode_file(url, out_path):
 	this from a background thread, never the UI thread. On failure, cleans
 	up any partial file and re-raises so the caller can report it.
 	"""
+	if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
+		raise ValueError("Only HTTP and HTTPS episode URLs are supported")
+	if os.path.exists(out_path):
+		raise FileExistsError(out_path)
 	req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+	partial = None
 	try:
 		with urllib.request.urlopen(req, timeout=60) as resp:
-			with open(out_path, "wb") as f:
+			if urllib.parse.urlsplit(resp.geturl()).scheme.lower() not in ("http", "https"):
+				raise ValueError("Invalid episode redirect")
+			mime = resp.headers.get_content_type()
+			if mime.startswith("text/") or mime in ("application/json", "application/xml", "application/rss+xml"):
+				raise ValueError("The server did not return an audio file")
+			length = resp.headers.get("Content-Length")
+			expected = int(length) if length is not None else None
+			received = 0
+			with tempfile.NamedTemporaryFile(mode="wb", dir=os.path.dirname(os.path.abspath(out_path)), suffix=".part", delete=False) as f:
+				partial = f.name
 				while True:
 					chunk = resp.read(65536)
 					if not chunk:
 						break
 					f.write(chunk)
-	except Exception:
-		try:
-			if os.path.exists(out_path):
-				os.remove(out_path)
-		except Exception:
-			pass
-		raise
+					received += len(chunk)
+				if not received or (expected is not None and received != expected):
+					raise IOError("The episode download is incomplete")
+				f.flush()
+				os.fsync(f.fileno())
+		# On Windows rename fails if the destination already exists. Never replace
+		# an earlier download, including one completed by another app instance.
+		if os.path.exists(out_path):
+			raise FileExistsError(out_path)
+		os.rename(partial, out_path)
+		partial = None
+	finally:
+		if partial is not None:
+			try:
+				os.remove(partial)
+			except OSError:
+				pass
 
 
 class PodcastEpisode:

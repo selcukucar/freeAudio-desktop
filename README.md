@@ -1,7 +1,11 @@
-# freeAudio Desktop 1.2.1
+# freeAudio Desktop 1.2.2
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
+
+## Podcast bölümü indirme
+
+Arama sonucundaki bölüm önizleme listesinde veya abone olduğunuz podcastin bölüm listesinde İçerik tuşu ya da Shift+F10 ile menüyü açıp **Bölümü indir** seçeneğini kullanın. Önizleme listesinden indirmek için abone olmanız gerekmez. Dosyalar ayarlardaki kayıt klasörüne, özel konum seçilmemişse Belgeler/freeAudio Recordings klasörüne kaydedilir. İndirme bittiğinde tam dosya yolu bildirilir.
 
 ## Çalıştırma
 

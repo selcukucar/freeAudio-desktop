@@ -162,6 +162,33 @@ class AccessibilityTests(unittest.TestCase):
             frame.Destroy()
             self.app.ProcessPendingEvents()
 
+    def test_native_podcast_preview_menu_download_in_both_languages(self):
+        from unittest.mock import Mock
+        for language, download_label in [('tr', 'Bölümü İndir'), ('en', 'Download Episode')]:
+            with self.subTest(language=language), tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
+                frame = wx.Frame(None)
+                try:
+                    install(ROOT, Settings(directory), frame, language)
+                    with patch.object(sys, 'path', [str(ROOT / 'vendor')] + sys.path):
+                        module = importlib.import_module('freeAudio.radioDialog')
+                    dialog = Mock()
+                    dialog._podcast_preview_list.GetSelection.return_value = 0
+                    dialog._podcast_preview_episodes = [types.SimpleNamespace(url='https://example.org/audio.mp3')]
+                    dialog._podcast_downloads = set()
+                    dialog._is_previewing.return_value = False
+                    dialog._podcast_preview_list.GetScreenPosition.return_value = wx.Point(0, 0)
+                    dialog.GetScreenPosition.return_value = wx.Point(0, 0)
+                    entries = {}
+                    dialog.PopupMenu.side_effect = lambda menu, point: entries.update({item.GetItemLabelText(): item.IsEnabled() for item in menu.GetMenuItems()})
+                    module.RadioDialog._show_podcast_preview_context_menu(dialog)
+                    self.assertTrue(entries[download_label])
+                    dialog._podcast_downloads.add('https://example.org/audio.mp3')
+                    module.RadioDialog._show_podcast_preview_context_menu(dialog)
+                    self.assertFalse(entries[download_label])
+                finally:
+                    frame.Destroy()
+                    self.app.ProcessPendingEvents()
+
     def test_radio_context_menu_records_playing_station_and_allows_stop_after_switch(self):
         from unittest.mock import Mock
         with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):

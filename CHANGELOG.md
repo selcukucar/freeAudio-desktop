@@ -1,3 +1,10 @@
+# 1.2.2
+
+- Podcast arama sonuçlarındaki bölüm önizleme menüsüne Bölümü indir eklendi. İçerik tuşu veya Shift+F10 ile erişilebilir; indirmek için abone olmak gerekmez. Abone olunan bölüm listesindeki indirme de aynı yöntemi kullanır.
+- İndirme tamamlandığında ve dosya zaten mevcut olduğunda tam dosya yolu bildirilir. Aynı bölümün eşzamanlı tekrar indirilmesi engellenir; seçim değiştirilse de başlatılan bölüm indirilir.
+- İndirmeler geçici dosyaya yazılıp tamamlanınca son adına taşınır. Boş, eksik veya HTML hata yanıtları başarı olarak bildirilmez; hata durumunda geçici dosya temizlenir. Önceki dosyalar korunur.
+- Aynı başlıklı farklı bölümlerin dosya adları ayırt edilir. İndirme bitiminde liste seçimi yoksa düğme yanlışlıkla etkinleştirilmez; kapatılmış pencereye gelen sonuçlar güvenle yok sayılır.
+
 # 1.2.1
 
 - Yeni kurulumlarda tüm kullanıcılar / Program Files varsayılandır. Kurulum kipinde yalnız bu kullanıcı seçilirse LocalAppData/Programs kullanılır. Windows yönetici izni yalnız tüm kullanıcılar kurulumunda gerekir.
