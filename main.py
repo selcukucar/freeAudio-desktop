@@ -37,6 +37,22 @@ class DesktopFrame(wx.Frame):
         self.plugin, self.settings, self.translate = plugin, settings, translate
         self.notifications = notifications
         self._closing = False
+        self._downloads_window = self._listening_window = None
+        from desktop.downloads import DownloadManager
+        from desktop.catalog import ListeningHistory
+        def download_episode(*args, **kwargs):
+            from freeAudio.podcast import download_episode_file
+            return download_episode_file(*args, **kwargs)
+        def download_destination(title, url):
+            from freeAudio.podcast import episode_download_target
+            return episode_download_target(title, url)[0]
+        self.downloads = DownloadManager(settings.directory, download_episode,
+                                        lambda item: wx.CallAfter(self.download_finished, item), download_destination)
+        self.listening_history = ListeningHistory(settings.directory)
+        self.plugin._desktop_downloads = self.downloads
+        self._download_shutdown_requested = False
+        self._exit_recordings_confirmed = False
+        self._history_error_reported = False
         self._update_check_running = False
         self._update_manual_requested = False
         self._startup_update_timer = None
@@ -76,6 +92,9 @@ class DesktopFrame(wx.Frame):
         updates.Bind(wx.EVT_BUTTON, lambda event: self.open_update_options())
         help_button.Bind(wx.EVT_BUTTON, self.help)
         backup_button.Bind(wx.EVT_BUTTON, self.backup_profile)
+        view.downloads.Bind(wx.EVT_BUTTON, self.show_downloads)
+        view.listening.Bind(wx.EVT_BUTTON, self.show_listening_history)
+        view.about.Bind(wx.EVT_BUTTON, self.about)
         exit_button.Bind(wx.EVT_BUTTON, lambda event: self.Close())
         self.Bind(wx.EVT_CLOSE, self.exit)
         if settings['freeAudio'].get('resume_on_start') and settings['freeAudio'].get('last_station_url'):
@@ -108,6 +127,16 @@ class DesktopFrame(wx.Frame):
         if self._closing:
             return
         player = self.plugin._player
+        if not player.has_media() and hasattr(self, 'listening_history'):
+            self.listening_history.last_key = None
+        if player.is_playing() and hasattr(self, 'listening_history'):
+            try:
+                self.listening_history.observe(player.get_current_station())
+            except Exception:
+                if not self._history_error_reported:
+                    logging.exception('Could not save listening history')
+                    self._history_error_reported = True
+                    self.notifications.message(self.translate('Listening history could not be saved. Playback continues.'))
         if player.has_media():
             label = self.translate('Current media: %s' if player.is_playing() else 'Paused: %s') % player.get_current_name()
         else:
@@ -259,6 +288,89 @@ class DesktopFrame(wx.Frame):
             outer.Add(text, 1, wx.EXPAND | wx.ALL, 10)
             outer.Add(dialog.CreateButtonSizer(wx.CLOSE), 0, wx.ALL, 10)
             dialog.SetSizer(outer)
+            dialog.SetEscapeId(wx.ID_CLOSE)
+            text.SetFocus()
+            dialog.ShowModal()
+
+    def show_downloads(self, event=None):
+        from desktop.media_dialogs import DownloadsDialog
+        if not self._downloads_window:
+            self._downloads_window = DownloadsDialog(self)
+        self._downloads_window.Show()
+        self._downloads_window.Raise()
+        wx.CallAfter(self._downloads_window.list.SetFocus)
+
+    def show_listening_history(self, event=None):
+        from desktop.media_dialogs import HistoryDialog
+        if not self._listening_window:
+            self._listening_window = HistoryDialog(self)
+        self._listening_window.Show()
+        self._listening_window.Raise()
+        wx.CallAfter(self._listening_window.list.SetFocus)
+
+    def download_finished(self, item):
+        if self._closing or not self or self._download_shutdown_requested:
+            return
+        state = item['state']
+        if state == 'completed':
+            message = self.translate('Download complete: %s') % self.downloads.resolve_path(item)
+        elif state == 'cancelled':
+            message = self.translate('Download cancelled: %s') % item['title']
+        else:
+            message = self.translate('Download failed: %s') % (item['title'] + ': ' + item['error'])
+        self.notifications.message(message)
+
+    def play_history(self, station):
+        station = dict(station)
+        if station.get('getem_detail_url'):
+            token = self._playback_gate.request()
+            self.notifications.message(self.translate('Opening saved media...'))
+            def work():
+                try:
+                    rebuilt = self.plugin._rebuild_getem_resume_url(station['getem_detail_url'], station.get('getem_chapter_index', 0))
+                    def ready():
+                        if not self or self._closing or self._playback_gate.current != token:
+                            return
+                        if rebuilt:
+                            self.plugin._play_station(rebuilt)
+                        else:
+                            self._playback_gate.cancel()
+                            self.notifications.message(self.translate('Saved media could not be opened. Check your account and library.'))
+                    wx.CallAfter(ready)
+                except Exception:
+                    logging.exception('Could not rebuild history media')
+                    wx.CallAfter(self.history_open_failed, token)
+            threading.Thread(target=work, daemon=True).start()
+            return
+        url = station.get('url', '')
+        if not url.lower().startswith(('http://', 'https://')) and not Path(url).is_file():
+            self.notifications.message(self.translate('The downloaded file is not available'))
+            return
+        self.plugin._play_station(station)
+
+    def history_open_failed(self, token):
+        if self and not self._closing and self._playback_gate.current == token:
+            self._playback_gate.cancel()
+            self.notifications.message(self.translate('Saved media could not be opened. Check your account and library.'))
+
+    def about(self, event=None):
+        import wx.adv
+        from desktop.credits import credits_text, ORIGINAL_URL
+        _ = self.translate
+        with wx.Dialog(self, title=_('About freeAudio Desktop'), size=(680, 430),
+                       style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER) as dialog:
+            outer = wx.BoxSizer(wx.VERTICAL)
+            outer.Add(wx.StaticText(dialog, label=_('Credits and license')), 0, wx.ALL, 12)
+            text = wx.TextCtrl(dialog, value='freeAudio Desktop ' + VERSION + '\n\n' + credits_text(self.settings['desktop'].get('language', 'tr')),
+                               style=wx.TE_MULTILINE | wx.TE_READONLY)
+            text.SetName(_('Credits and license'))
+            outer.Add(text, 1, wx.EXPAND | wx.ALL, 12)
+            link = wx.adv.HyperlinkCtrl(dialog, label=_('Original freeAudio NVDA add-on'), url=ORIGINAL_URL)
+            outer.Add(link, 0, wx.ALL, 12)
+            outer.Add(dialog.CreateButtonSizer(wx.CLOSE), 0, wx.ALL | wx.ALIGN_RIGHT, 12)
+            dialog.FindWindowById(wx.ID_CLOSE).SetLabel(_('&Close'))
+            dialog.SetSizer(outer)
+            dialog.SetEscapeId(wx.ID_CLOSE)
             text.SetFocus()
             dialog.ShowModal()
 
@@ -452,14 +564,15 @@ class DesktopFrame(wx.Frame):
         if self._closing:
             return
         recorder = self.plugin._recorder
-        if event.CanVeto() and (recorder.is_recording() or recorder.get_active_scheduled()):
+        if event.CanVeto() and not getattr(self, "_exit_recordings_confirmed", False) and (recorder.is_recording() or recorder.get_active_scheduled()):
             if wx.MessageBox(self.translate('A recording is in progress. Stop recording and exit?'),
                              'freeAudio Desktop', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, self) != wx.YES:
                 self._pending_update = None
                 event.Veto()
                 return
+        self._exit_recordings_confirmed = True
         pending_update = getattr(self, '_pending_update', None)
-        if pending_update is not None:
+        if pending_update is not None and not getattr(self, '_download_shutdown_requested', False):
             try:
                 from desktop.updates import verify_download
                 verify_download(*pending_update)
@@ -476,7 +589,28 @@ class DesktopFrame(wx.Frame):
                 if event.CanVeto():
                     event.Veto()
                 return
+        manager = getattr(self, 'downloads', None)
+        if manager is not None:
+            active = any(item['state'] in manager.ACTIVE for item in manager.snapshot())
+            if active and not self._download_shutdown_requested and event.CanVeto():
+                if wx.MessageBox(self.translate('Downloads are in progress. Cancel them and exit?'),
+                                 'freeAudio Desktop', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, self) != wx.YES:
+                    self._pending_update = None
+                    self._exit_recordings_confirmed = False
+                    event.Veto()
+                    return
+            if active or self._download_shutdown_requested:
+                if not self._download_shutdown_requested:
+                    self._download_shutdown_requested = True
+                    manager.close()
+                    self.notifications.message(self.translate('Cancelling downloads before exit...'))
+                if any(worker.is_alive() for worker in manager.workers) and event.CanVeto():
+                    event.Veto()
+                    wx.CallLater(100, self.Close)
+                    return
         self._closing = True
+        if manager is not None and not manager.closed:
+            manager.close()
         if getattr(self, '_startup_update_timer', None) is not None:
             self._startup_update_timer.Stop()
             self._startup_update_timer = None

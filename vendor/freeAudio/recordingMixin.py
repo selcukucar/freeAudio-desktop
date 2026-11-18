@@ -42,7 +42,7 @@ class RecordingMixin:
 		whether the browser dialog is open."""
 		# Translators: Fallback episode title used for the downloaded filename if the currently playing episode has no name.
 		title = station.get("name", "").strip() or _("Episode")
-		url = station.get("url") or station.get("url_resolved")
+		url = station.get("podcast_resume_key") or station.get("url") or station.get("url_resolved")
 		if not url:
 			# Translators: Spoken when trying to download the current podcast episode but it has no resolvable URL.
 			ui.message(_("This episode has no downloadable URL."))
@@ -50,6 +50,11 @@ class RecordingMixin:
 
 		from . import podcast
 		out_path, filename = podcast.episode_download_target(title, url)
+		manager = getattr(self, "_desktop_downloads", None)
+		if manager is not None:
+			item = manager.enqueue(title, url, out_path)
+			ui.message(_("Download complete: %s") % str(manager.resolve_path(item)) if item["state"] == "completed" else _("Downloading: %s") % title)
+			return
 		if os.path.exists(out_path):
 			# Translators: Spoken when the episode was already downloaded before; %s is the existing filename. Same wording as the Podcasts tab download action.
 			ui.message(_("File already exists: %s") % filename)
@@ -361,14 +366,9 @@ class RecordingMixin:
 		gesture="kb:control+windows+w",
 	)
 	def script_openRecordingsFolder(self, gesture):
-		custom_dir = config.conf["freeAudio"].get("recordings_dir", "").strip()
-		if custom_dir and os.path.isabs(custom_dir):
-			recordings_dir = custom_dir
-		else:
-			recordings_dir = os.path.join(os.path.expanduser("~"), "Documents", "freeAudio Recordings")
-		os.makedirs(recordings_dir, exist_ok=True)
 		try:
-			os.startfile(recordings_dir)
+			from . import recorder as recorder_module
+			os.startfile(recorder_module._recordings_dir())
 		except Exception as e:
 			# Translators: Spoken when the Ctrl+Win+W shortcut can't open the recordings folder in Explorer; %s is the underlying error.
 			ui.message(_("Could not open recordings folder: %s") % str(e))

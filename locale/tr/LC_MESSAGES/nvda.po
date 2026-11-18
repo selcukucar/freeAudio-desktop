@@ -5927,7 +5927,7 @@ msgstr "Şimdi çalan"
 #. Translators: Field-name row header for the parent podcast feed's URL.
 #: addon\globalPlugins\freeAudio\trackInfoMixin.py:836
 msgid "Podcast"
-msgstr "Podcast'"
+msgstr "Podcast"
 
 #. Translators: Field-name row header for the resolved episode audio URL.
 #: addon\globalPlugins\freeAudio\trackInfoMixin.py:852
@@ -6875,6 +6875,152 @@ msgstr "F5: sesi azalt  |  F6: sesi artır  |  F8: durdur / oynat"
 
 msgid "Could not change volume. Please try again."
 msgstr "Ses düzeyi değiştirilemedi. Lütfen yeniden deneyin."
+
+msgid "&Downloads and offline podcasts"
+msgstr "İ&ndirmeler ve çevrimdışı podcastler"
+
+msgid "Downloads and offline podcasts"
+msgstr "İndirmeler ve çevrimdışı podcastler"
+
+msgid "&Listening history"
+msgstr "Dinleme &geçmişi"
+
+msgid "Listening history"
+msgstr "Dinleme geçmişi"
+
+msgid "&About freeAudio Desktop"
+msgstr "freeAudio Desktop &hakkında"
+
+msgid "About freeAudio Desktop"
+msgstr "freeAudio Desktop hakkında"
+
+msgid "Credits and license"
+msgstr "Emek, teşekkür ve lisans"
+
+msgid "Original freeAudio NVDA add-on"
+msgstr "Özgün freeAudio NVDA eklentisi"
+
+msgid "Show"
+msgstr "Göster"
+
+msgid "All downloads"
+msgstr "Tüm indirmeler"
+
+msgid "Downloaded episodes"
+msgstr "İndirilen bölümler"
+
+msgid "Podcast downloads"
+msgstr "Podcast indirmeleri"
+
+msgid "Download details"
+msgstr "İndirme ayrıntıları"
+
+msgid "Queued"
+msgstr "Sırada"
+
+msgid "Downloading"
+msgstr "İndiriliyor"
+
+msgid "Downloaded"
+msgstr "İndirildi"
+
+msgid "Cancelled"
+msgstr "İptal edildi"
+
+msgid "Failed"
+msgstr "Başarısız"
+
+msgid "&Play downloaded episode"
+msgstr "İndirilen bölümü &oynat"
+
+msgid "&Read progress"
+msgstr "İlerlemeyi &bildir"
+
+msgid "&Cancel download"
+msgstr "İndirmeyi i&ptal et"
+
+msgid "&Retry download"
+msgstr "İndirmeyi &yeniden dene"
+
+msgid "Open download &folder"
+msgstr "İndirme &klasörünü aç"
+
+msgid "Remove from &list"
+msgstr "&Listeden kaldır"
+
+msgid "&Delete downloaded file"
+msgstr "İndirilen dosyayı &sil"
+
+msgid "Delete downloaded file"
+msgstr "İndirilen dosyayı sil"
+
+msgid "%s of %s MB"
+msgstr "%s / %s MB"
+
+msgid "%s MB downloaded; total size unknown"
+msgstr "%s MB indirildi; toplam boyut bilinmiyor"
+
+msgid "The downloaded file is not available"
+msgstr "İndirilen dosya bulunamıyor"
+
+msgid "Download queued"
+msgstr "İndirme sıraya alındı"
+
+msgid ""
+"Delete this downloaded file?\n"
+"%s"
+msgstr ""
+"Bu indirilen dosya silinsin mi?\n"
+"%s"
+
+msgid "Operation failed: %s"
+msgstr "İşlem başarısız: %s"
+
+msgid "Recently played media"
+msgstr "Son dinlenenler"
+
+msgid "&Play selected media"
+msgstr "Seçili medyayı &oynat"
+
+msgid "Clear listening &history"
+msgstr "Dinleme geçmişini &temizle"
+
+msgid "Clear listening history? Saved media files will be kept."
+msgstr ""
+"Dinleme geçmişi temizlensin mi? Kaydedilmiş medya dosyaları korunacak."
+
+msgid "Listening history could not be saved. Playback continues."
+msgstr "Dinleme geçmişi kaydedilemedi. Oynatma devam ediyor."
+
+msgid "Download cancelled: %s"
+msgstr "İndirme iptal edildi: %s"
+
+msgid "Opening saved media..."
+msgstr "Kayıtlı medya açılıyor..."
+
+msgid "Saved media could not be opened. Check your account and library."
+msgstr "Kayıtlı medya açılamadı. Hesabınızı ve kitaplığınızı kontrol edin."
+
+msgid "Downloads are in progress. Cancel them and exit?"
+msgstr "İndirmeler sürüyor. İndirmeler iptal edilip uygulamadan çıkılsın mı?"
+
+msgid "Cancelling downloads before exit..."
+msgstr "Çıkmadan önce indirmeler iptal ediliyor..."
+
+msgid "Recordings folder must be an absolute path."
+msgstr "Kayıt klasörü D:\\Kayıtlar gibi tam bir yol olmalıdır."
+
+msgid "Recording folder unavailable; recording was not started: %s"
+msgstr "Kayıt klasörü kullanılamıyor; kayıt başlatılmadı: %s"
+
+msgid "Radio"
+msgstr "Radyo"
+
+msgid "Audio book"
+msgstr "Sesli kitap"
+
+msgid "Local music"
+msgstr "Yerel müzik"
 
 #~ msgid ""
 #~ "\n"

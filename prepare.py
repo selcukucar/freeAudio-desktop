@@ -121,6 +121,15 @@ TR = {
 }
 
 
+TR.update({'&Downloads and offline podcasts': 'İ&ndirmeler ve çevrimdışı podcastler', 'Downloads and offline podcasts': 'İndirmeler ve çevrimdışı podcastler', '&Listening history': 'Dinleme &geçmişi', 'Listening history': 'Dinleme geçmişi', '&About freeAudio Desktop': 'freeAudio Desktop &hakkında', 'About freeAudio Desktop': 'freeAudio Desktop hakkında', 'Credits and license': 'Emek, teşekkür ve lisans', 'Original freeAudio NVDA add-on': 'Özgün freeAudio NVDA eklentisi', 'Show': 'Göster', 'All downloads': 'Tüm indirmeler', 'Downloaded episodes': 'İndirilen bölümler', 'Podcast downloads': 'Podcast indirmeleri', 'Download details': 'İndirme ayrıntıları', 'Download progress': 'İndirme ilerlemesi', 'Queued': 'Sırada', 'Downloading': 'İndiriliyor', 'Downloaded': 'İndirildi', 'Cancelled': 'İptal edildi', 'Failed': 'Başarısız', '&Play downloaded episode': 'İndirilen bölümü &oynat', '&Read progress': 'İlerlemeyi &bildir', '&Cancel download': 'İndirmeyi i&ptal et', '&Retry download': 'İndirmeyi &yeniden dene', 'Open download &folder': 'İndirme &klasörünü aç', 'Remove from &list': '&Listeden kaldır', '&Delete downloaded file': 'İndirilen dosyayı &sil', 'Delete downloaded file': 'İndirilen dosyayı sil', '%s of %s MB': '%s / %s MB', '%s MB downloaded; total size unknown': '%s MB indirildi; toplam boyut bilinmiyor', 'The downloaded file is not available': 'İndirilen dosya bulunamıyor', 'Cancelling download...': 'İndirme iptal ediliyor...', 'Download queued': 'İndirme sıraya alındı', 'Delete this downloaded file?\n%s': 'Bu indirilen dosya silinsin mi?\n%s', 'Operation failed: %s': 'İşlem başarısız: %s', 'Recently played media': 'Son dinlenenler', '&Play selected media': 'Seçili medyayı &oynat', 'Clear listening &history': 'Dinleme geçmişini &temizle', 'Clear listening history? Saved media files will be kept.': 'Dinleme geçmişi temizlensin mi? Kaydedilmiş medya dosyaları korunacak.', 'Listening history could not be saved. Playback continues.': 'Dinleme geçmişi kaydedilemedi. Oynatma devam ediyor.', 'Download cancelled: %s': 'İndirme iptal edildi: %s', 'Opening saved media...': 'Kayıtlı medya açılıyor...', 'Saved media could not be opened. Check your account and library.': 'Kayıtlı medya açılamadı. Hesabınızı ve kitaplığınızı kontrol edin.', 'Downloads are in progress. Cancel them and exit?': 'İndirmeler sürüyor. İndirmeler iptal edilip uygulamadan çıkılsın mı?', 'Cancelling downloads before exit...': 'Çıkmadan önce indirmeler iptal ediliyor...'})
+TR.update({
+    'Recordings folder must be an absolute path.': 'Kayıt klasörü D:\\Kayıtlar gibi tam bir yol olmalıdır.',
+    'Recording folder unavailable; recording was not started: %s': 'Kayıt klasörü kullanılamıyor; kayıt başlatılmadı: %s',
+})
+
+TR.update({'Podcast': 'Podcast', 'Radio': 'Radyo', 'Audio book': 'Sesli kitap', 'Local music': 'Yerel müzik'})
+
+
 def prepare():
     source = ROOT / 'locale/tr/LC_MESSAGES/nvda.po'
     catalog = polib.pofile(str(source))

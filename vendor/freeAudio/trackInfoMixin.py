@@ -1147,12 +1147,8 @@ class TrackInfoMixin:
 		# Save to likedSongs.txt if the option is enabled
 		if config.conf["freeAudio"].get("save_liked_songs", False):
 			try:
-				custom_dir = config.conf["freeAudio"].get("recordings_dir", "").strip()
-				if custom_dir and os.path.isabs(custom_dir):
-					recordings_dir = custom_dir
-				else:
-					recordings_dir = os.path.join(os.path.expanduser("~"), "Documents", "freeAudio Recordings")
-				os.makedirs(recordings_dir, exist_ok=True)
+				from . import recorder as recorder_module
+				recordings_dir = recorder_module._recordings_dir()
 				liked_path = os.path.join(recordings_dir, "likedSongs.txt")
 				# Duplicate check: don't add the same song if it is already in the list
 				existing = []

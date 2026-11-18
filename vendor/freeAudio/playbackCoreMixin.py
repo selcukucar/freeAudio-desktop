@@ -1113,6 +1113,9 @@ class PlaybackCoreMixin:
 				return
 			station = rebuilt
 		elif tags == "podcast":
+			resume_key = config.conf["freeAudio"].get("last_station_podcast_resume_key", "")
+			if resume_key:
+				station["podcast_resume_key"] = resume_key
 			# Likewise, re-apply the subscribed feed's saved audio profile
 			# (if any) - see _on_episode_play()/_play_station(). Unlike the
 			# audiobook case, the episode URL itself is still perfectly
@@ -1160,7 +1163,7 @@ class PlaybackCoreMixin:
 		# jukebox.JukeboxTrack.to_dict()) and never touch the network
 		# regardless of whether one's available. Also skipped if the user
 		# has disabled this check in settings.
-		if station.get("media_kind") != "jukebox" and not config.conf["freeAudio"].get("disable_internet_check", False):
+		if station.get("media_kind") != "jukebox" and not os.path.isfile(url) and not config.conf["freeAudio"].get("disable_internet_check", False):
 			if not self._check_internet():
 				# Translators: Spoken when trying to play a station but the internet-connectivity pre-check fails.
 				ui.message(_("No internet connection. Please check your connection and try again."))
@@ -1186,6 +1189,7 @@ class PlaybackCoreMixin:
 			# since it has no actual GETEM/podcast/jukebox data behind it -
 			# on the next NVDA startup.
 			_last_media_kind = station.get("media_kind")
+			config.conf["freeAudio"]["last_station_podcast_resume_key"] = (station.get("podcast_resume_key", "") if _last_media_kind == "podcast" else "")
 			config.conf["freeAudio"]["last_station_tags"] = (
 				_last_media_kind if _last_media_kind in ("podcast", "audiobook", "jukebox") else ""
 			)

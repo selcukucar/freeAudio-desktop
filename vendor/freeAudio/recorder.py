@@ -294,17 +294,51 @@ def _is_icy_error(exc):
 	return "ICY" in msg
 
 
-def _recordings_dir():
-	try:
-		import config as _cfg
-		custom = _cfg.conf["freeAudio"].get("recordings_dir", "").strip()
-	except Exception:
-		custom = ""
-	if custom and os.path.isabs(custom):
-		os.makedirs(custom, exist_ok=True)
-		return custom
+def _default_recordings_dir():
 	docs = os.path.join(os.path.expanduser("~"), "Documents")
-	path = os.path.join(docs, "freeAudio Recordings")
+	if os.name == "nt":
+		try:
+			import ctypes
+			buffer = ctypes.create_unicode_buffer(32768)
+			if ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buffer) == 0 and buffer.value:
+				docs = buffer.value
+		except Exception:
+			log.exception("Could not resolve the Windows Documents folder")
+	return os.path.join(docs, "freeAudio Recordings")
+
+
+def normalize_recordings_folder(value):
+	value = (value or "").strip()
+	if len(value) >= 2 and value[0] == value[-1] == '"':
+		value = value[1:-1].strip()
+	if not value:
+		return ""
+	value = os.path.expandvars(os.path.expanduser(value))
+	if not os.path.isabs(value) or "\x00" in value:
+		raise ValueError(_("Recordings folder must be an absolute path."))
+	return os.path.realpath(value)
+
+
+def validate_recordings_folder(value):
+	"""Validate an explicit destination with a real, uniquely named write probe."""
+	folder = normalize_recordings_folder(value)
+	if not folder:
+		return ""
+	os.makedirs(folder, exist_ok=True)
+	probe = os.path.join(folder, ".freeAudio_write_test_" + uuid.uuid4().hex)
+	try:
+		with open(probe, "xb") as stream:
+			stream.write(b"")
+	finally:
+		if os.path.isfile(probe):
+			os.remove(probe)
+	return folder
+
+
+def _recordings_dir():
+	import config as _cfg
+	custom = normalize_recordings_folder(_cfg.conf["freeAudio"].get("recordings_dir", ""))
+	path = custom or _default_recordings_dir()
 	os.makedirs(path, exist_ok=True)
 	return path
 
@@ -323,38 +357,12 @@ def _make_output_path(station_name, ext="mp3", folder=None):
 
 
 def _resolve_output_folder(custom_folder):
-	"""Resolve the folder a scheduled recording should be written to.
-
-	Returns (folder_path, fallback_reason). fallback_reason is None when
-	*custom_folder* is empty/unset (global default used, as before) or was
-	used successfully as-is. When the requested folder cannot be created or
-	written to, the global default is returned instead and fallback_reason
-	holds a short, user-facing explanation so the caller can notify the
-	user that their chosen folder was not used for this recording.
+	"""Honor an explicit schedule destination, or the global user destination.
+	Never silently redirect an unavailable destination to another folder.
 	"""
-	custom_folder = (custom_folder or "").strip()
-	if not custom_folder:
+	if not (custom_folder or "").strip():
 		return _recordings_dir(), None
-	try:
-		os.makedirs(custom_folder, exist_ok=True)
-		# os.makedirs succeeding doesn't guarantee the folder is writable
-		# (e.g. a read-only network share) — verify with an actual write.
-		# The probe name must be unique per call: multiple scheduled
-		# recordings can resolve the same folder at the same moment (e.g.
-		# several entries firing together), and a fixed filename would have
-		# one thread's write collide with another's on Windows.
-		probe = os.path.join(custom_folder, ".freeAudio_write_test_%s" % uuid.uuid4().hex)
-		with open(probe, "w") as f:
-			f.write("")
-		os.remove(probe)
-		return custom_folder, None
-	except Exception as e:
-		log.warning(
-			"freeAudio Recorder: configured folder '%s' is unavailable (%s); "
-			"falling back to the default recordings folder",
-			custom_folder, e,
-		)
-		return _recordings_dir(), str(e)
+	return validate_recordings_folder(custom_folder), None
 
 
 _RECORDING_FORMATS = ("original", "audio_only", "mp3")
@@ -2668,10 +2676,16 @@ class Recorder:
 
 		url  = rec.station.get("url_resolved") or rec.station.get("url", "")
 		name = rec.station.get("name", "Unknown").strip()
-		folder, fallback_reason = _resolve_output_folder(rec.output_folder)
-		if fallback_reason and hasattr(self, "_notify_folder_fallback") and self._notify_folder_fallback:
-			self._notify_folder_fallback(rec, rec.output_folder, fallback_reason)
-		out  = _make_output_path(name, folder=folder)
+		try:
+			folder, _ = _resolve_output_folder(rec.output_folder)
+			out = _make_output_path(name, folder=folder)
+		except Exception as error:
+			log.exception("Scheduled recording destination is unavailable")
+			if getattr(self, "_notify_folder_error", None):
+				self._notify_folder_error(str(error))
+			self._reschedule_finished(rec)
+			self._persist_schedules()
+			return
 
 		writer = _StreamWriter(url, out)
 		writer.start()
@@ -2750,6 +2764,9 @@ class Recorder:
 			if hasattr(self, "_notify_finish") and self._notify_finish:
 				self._notify_finish(rec)
 
+		self._reschedule_finished(rec)
+
+	def _reschedule_finished(self, rec):
 		# Re-queue recurring entries after the recording has fully completed.
 		# Doing this here (rather than in _scheduler_loop) prevents a duplicate
 		# entry from appearing in the schedule list when NVDA is restarted while

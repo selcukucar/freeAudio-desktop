@@ -132,6 +132,94 @@ class StreamingTests(unittest.TestCase):
                     self.podcast.download_episode_file(self.base + route, str(target))
                 self.assertEqual(list(Path(directory).iterdir()), [])
 
+    def test_selected_recording_folder_is_used_for_real_capture_and_podcast_without_fallback(self):
+        work = ROOT.parents[1] / 'work'
+        with tempfile.TemporaryDirectory(dir=work if work.is_dir() else None) as directory:
+            selected = Path(directory, 'Seçilen kayıt klasörü')
+            config = sys.modules['config'].conf['freeAudio']
+            with patch.dict(config, recordings_dir='"' + str(selected) + '"'), patch.object(self.recorder, '_default_recordings_dir', side_effect=AssertionError('Unwanted default destination')):
+                self.assertEqual(Path(self.recorder._recordings_dir()), selected)
+                target, name = self.podcast.episode_download_target('Bölüm', self.base + '/radio.mp3')
+                self.podcast.download_episode_file(self.base + '/radio.mp3', target)
+                self.assertEqual(Path(target).parent, selected)
+                self.assertEqual(Path(target).read_bytes(), self.payload)
+                recording = self.recorder.Recorder(dll_dir=str(ROOT / 'vendor/freeAudio'))
+                try:
+                    recording.start(types.SimpleNamespace(_current_url=self.base + '/radio.mp3', _current_url_resolved=None), 'Radio')
+                    self.assertTrue(wait_for(lambda: recording._writer.is_connected()))
+                    self.assertTrue(wait_for(lambda: list(selected.glob('Radio*.mp3'))))
+                    saved = Path(recording.stop())
+                    self.assertEqual(saved.parent, selected)
+                    self.assertGreater(saved.stat().st_size, 0)
+                    folder, reason = self.recorder._resolve_output_folder(None)
+                    self.assertEqual(Path(folder), selected)
+                    self.assertIsNone(reason)
+                finally:
+                    recording.terminate()
+
+    def test_invalid_or_unavailable_recording_folder_never_uses_the_default(self):
+        config = sys.modules['config'].conf['freeAudio']
+        with patch.object(self.recorder, '_default_recordings_dir', side_effect=AssertionError('Unwanted fallback')):
+            with patch.dict(config, recordings_dir='relative-folder'):
+                with self.assertRaises(ValueError):
+                    self.recorder._recordings_dir()
+            with tempfile.TemporaryDirectory() as directory:
+                unavailable = Path(directory, 'existing-file');unavailable.write_bytes(b'keep')
+                with patch.dict(config, recordings_dir=str(unavailable)):
+                    with self.assertRaises(OSError):
+                        self.recorder._recordings_dir()
+                with self.assertRaises(OSError):
+                    self.recorder._resolve_output_folder(str(unavailable))
+                self.assertEqual(unavailable.read_bytes(), b'keep')
+
+    def test_scheduled_unavailable_destination_reports_error_without_fallback(self):
+        import datetime
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory, 'not-a-folder');target.write_bytes(b'keep')
+            recorder=self.recorder.Recorder()
+            messages=[]
+            recorder._notify_folder_error=messages.append
+            rec=self.recorder.ScheduledRecording({'name':'Radio','url':self.base+'/radio.mp3'},datetime.datetime.now(),1,output_folder=str(target))
+            try:
+                with patch.object(self.recorder,'_default_recordings_dir',side_effect=AssertionError('Unwanted fallback')),patch.object(self.recorder,'_StreamWriter') as writer:
+                    recorder._run_scheduled(rec)
+                writer.assert_not_called()
+                self.assertTrue(messages)
+                self.assertIsNone(rec.output_path)
+                self.assertEqual(rec.occurrences_done,1)
+                self.assertEqual(target.read_bytes(),b'keep')
+            finally:
+                recorder.terminate()
+
+    def test_podcast_progress_and_cancellation_clean_the_partial_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory, 'episode.mp3')
+            cancel = threading.Event()
+            updates = []
+            def progress(received, total):
+                updates.append((received, total))
+                cancel.set()
+            with self.assertRaises(self.podcast.DownloadCancelled):
+                self.podcast.download_episode_file(self.base + '/radio.mp3', str(target), progress=progress, cancel=cancel)
+            self.assertTrue(updates)
+            self.assertEqual(updates[0][1], len(self.payload))
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_podcast_manager_completes_real_http_audio_and_persists_it(self):
+        from desktop.downloads import DownloadManager
+        with tempfile.TemporaryDirectory() as directory:
+            manager = DownloadManager(directory, self.podcast.download_episode_file)
+            try:
+                target = Path(directory, 'episode.mp3')
+                manager.enqueue('Episode', self.base + '/radio.mp3', target)
+                self.assertTrue(wait_for(lambda: manager.snapshot()[0]['state'] == 'completed'))
+                self.assertEqual(target.read_bytes(), self.payload)
+                self.assertEqual(manager.snapshot()[0]['received'], len(self.payload))
+            finally:
+                manager.close()
+                for worker in manager.workers:
+                    worker.join(2)
+
     def test_podcast_existing_download_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory, 'episode.mp3')

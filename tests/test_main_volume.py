@@ -97,13 +97,15 @@ class NativeMainViewTests(unittest.TestCase):
         frame=DesktopFrame(None)
         notifications=Notifications(frame);notifications.outputs=[];notifications.message=Mock()
         player=Mock();player.get_volume.return_value=35;player.has_media.return_value=False
-        plugin=types.SimpleNamespace(_player=player,_dialog=None,_sync_dialog_volume=Mock())
+        plugin=types.SimpleNamespace(_player=player,_dialog=None,_sync_dialog_volume=Mock(),_play_station=Mock())
         translation=gettext.translation('nvda',str(Path(__file__).resolve().parents[1]/'locale'),languages=[language],fallback=True).gettext
         frame.build(plugin,settings,translation,notifications)
         self.app.Yield()
         return frame,directory,translation
 
     def cleanup(self,frame,directory):
+        frame.downloads.close()
+        for worker in frame.downloads.workers: worker.join(2)
         frame._closing=True
         frame._playback_timer.Stop();frame._autosave.Stop();frame.shortcuts.close()
         frame.Destroy();self.app.Yield();directory.cleanup()
@@ -117,13 +119,49 @@ class NativeMainViewTests(unittest.TestCase):
                     playback=[w for w in view.stop.GetParent().GetChildren() if isinstance(w,(wx.Button,wx.SpinCtrl))]
                     self.assertEqual(playback,[view.stop,view.pause,view.volume_down,view.volume,view.volume_up])
                     tools=[w for w in view.browser.GetParent().GetChildren() if isinstance(w,wx.Button)]
-                    self.assertEqual(tools,[view.browser,view.settings,view.commands,view.messages,view.language,view.updates,view.backup,view.help,view.exit])
+                    self.assertEqual(tools,[view.browser,view.downloads,view.listening,view.settings,view.commands,view.messages,view.language,view.updates,view.backup,view.help,view.about,view.exit])
                     self.assertEqual(view.volume.GetName(),translate('Volume (%)'))
                     self.assertIsInstance(view.volume.GetPrevSibling(),wx.StaticText)
                     self.assertEqual(view.volume.GetPrevSibling().GetLabel(),translate('Volume (%)'))
                     self.assertEqual((view.volume.GetMin(),view.volume.GetMax()),(0,200))
                     self.assertTrue(all(control.GetHandle() for control in playback+tools))
                 finally:self.cleanup(frame,directory)
+
+    def test_download_and_history_windows_keep_selection_names_and_playback_keys(self):
+        from desktop.media_dialogs import DownloadsDialog, HistoryDialog
+        from unittest.mock import patch
+        frame,directory,translate=self.build_frame('tr')
+        downloads=history=None
+        try:
+            path=Path(directory.name)/'episode.mp3';path.write_bytes(b'audio')
+            item=frame.downloads.enqueue('Episode','https://example.org/audio',path)
+            downloads=DownloadsDialog(frame)
+            self.assertEqual(downloads.list.GetName(),'Podcast indirmeleri')
+            self.assertEqual(downloads.details.GetPrevSibling().GetLabel(),'İndirme ayrıntıları')
+            self.assertEqual(downloads.progress.GetPrevSibling().GetLabel(),'İndirme ilerlemesi')
+            self.assertTrue(downloads.buttons['play'].IsEnabled())
+            self.assertFalse(downloads.buttons['cancel'].IsEnabled())
+            downloads.list.SetFocus();before=wx.Window.FindFocus()
+            downloads.refresh()
+            self.assertEqual(before,wx.Window.FindFocus())
+            downloads.action('play')
+            frame.plugin._play_station.assert_called_once()
+            self.assertEqual(frame.plugin._play_station.call_args.args[0]['podcast_resume_key'],item['url'])
+            frame.listening_history.observe({'url':'https://example.org/radio','name':'Radio'})
+            history=HistoryDialog(frame)
+            self.assertEqual(history.list.GetName(),'Son dinlenenler')
+            self.assertEqual(history.list.GetCount(),1)
+            frame.listening_history.observe({'url':'https://example.org/podcast','name':'Episode','media_kind':'podcast'})
+            history.refresh()
+            self.assertIn('Radio',history.list.GetStringSelection())
+            with patch('desktop.media_dialogs.wx.MessageBox',return_value=wx.YES):
+                history.on_clear(None)
+            self.assertEqual(history.list.GetCount(),0)
+            self.assertTrue(path.exists())
+        finally:
+            if downloads: downloads.Close()
+            if history: history.Close()
+            self.cleanup(frame,directory)
 
     def test_compact_window_keeps_content_inside_horizontal_viewport(self):
         frame,directory,translate=self.build_frame('tr')

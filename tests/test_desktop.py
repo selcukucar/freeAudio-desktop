@@ -249,6 +249,58 @@ class AccessibilityTests(unittest.TestCase):
                 frame.Destroy()
                 self.app.ProcessPendingEvents()
 
+    def test_startup_resume_keeps_offline_podcast_original_position_key(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
+            settings=Settings(directory)
+            local=str(Path(directory,'episode.mp3'))
+            settings['freeAudio'].update(last_station_url=local,last_station_name='Episode',
+                last_station_tags='podcast',last_station_podcast_resume_key='https://example.org/original.mp3')
+            frame=wx.Frame(None)
+            try:
+                install(ROOT,settings,frame,'en')
+                with patch.object(sys,'path',[str(ROOT/'vendor')]+sys.path):
+                    module=importlib.import_module('freeAudio.playbackCoreMixin')
+                plugin=Mock();plugin._manager.get_favorites.return_value=[]
+                module.PlaybackCoreMixin._resume_last_station(plugin)
+                station=plugin._play_station.call_args.args[0]
+                self.assertEqual(station['url'],local)
+                self.assertEqual(station['podcast_resume_key'],'https://example.org/original.mp3')
+                self.assertEqual(station['media_kind'],'podcast')
+            finally:
+                frame.Destroy();self.app.ProcessPendingEvents()
+
+    def test_recording_directory_is_validated_saved_and_reloaded(self):
+        work = ROOT.parents[1] / 'work'
+        with tempfile.TemporaryDirectory(dir=work if work.is_dir() else None) as directory, patch.dict(sys.modules):
+            settings = Settings(directory)
+            settings['freeAudio'].update(volume=35, legacy_migrated=True)
+            frame = wx.Frame(None);dialog = None
+            try:
+                translate, notifications = install(ROOT, settings, frame, 'en')
+                with patch.object(sys, 'path', [str(ROOT / 'vendor')] + sys.path):
+                    panel_module = importlib.import_module('freeAudio.settingsPanel')
+                    recorder = importlib.import_module('freeAudio.recorder')
+                    with patch.object(panel_module, '_list_sapi5_voices', return_value=[]):
+                        dialog = SettingsDialog(frame, panel_module.freeAudioSettingsPanel, settings, translate)
+                        dialog.panel._volume.SetValue(88)
+                        dialog.panel._recordings_dir.SetValue('relative-folder')
+                        with self.assertRaises(ValueError):
+                            dialog.panel.onSave()
+                        self.assertEqual(settings['freeAudio']['volume'],35)
+                        destination = Path(directory, 'Seçilen kayıt dizini')
+                        dialog.panel._recordings_dir.SetValue('"' + str(destination) + '"')
+                        dialog.panel.onSave();settings.save()
+                        expected = str(destination.resolve())
+                        self.assertEqual(settings['freeAudio']['recordings_dir'],expected)
+                        self.assertEqual(Settings(directory)['freeAudio']['recordings_dir'],expected)
+                        with patch.object(recorder, '_default_recordings_dir', side_effect=AssertionError('Unwanted fallback')):
+                            self.assertEqual(recorder._recordings_dir(),expected)
+                        self.assertEqual(list(destination.iterdir()),[])
+            finally:
+                if dialog: dialog.Destroy()
+                frame.Destroy();self.app.ProcessPendingEvents()
+
     def test_quick_settings_save_preserves_voice_and_device_while_loading(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules):
             settings = Settings(directory)

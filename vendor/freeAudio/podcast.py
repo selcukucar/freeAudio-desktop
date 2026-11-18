@@ -94,11 +94,19 @@ def episode_download_target(title, url):
 	return out_path, filename
 
 
-def download_episode_file(url, out_path):
+class DownloadCancelled(Exception):
+	pass
+
+
+def download_episode_file(url, out_path, progress=None, cancel=None):
 	"""Download *url* to *out_path*. Blocking network/disk I/O - always call
 	this from a background thread, never the UI thread. On failure, cleans
 	up any partial file and re-raises so the caller can report it.
 	"""
+	def check_cancel():
+		if cancel is not None and cancel.is_set():
+			raise DownloadCancelled("Download cancelled")
+	check_cancel()
 	if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
 		raise ValueError("Only HTTP and HTTPS episode URLs are supported")
 	if os.path.exists(out_path):
@@ -106,7 +114,7 @@ def download_episode_file(url, out_path):
 	req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
 	partial = None
 	try:
-		with urllib.request.urlopen(req, timeout=60) as resp:
+		with urllib.request.urlopen(req, timeout=15) as resp:
 			if urllib.parse.urlsplit(resp.geturl()).scheme.lower() not in ("http", "https"):
 				raise ValueError("Invalid episode redirect")
 			mime = resp.headers.get_content_type()
@@ -115,20 +123,24 @@ def download_episode_file(url, out_path):
 			length = resp.headers.get("Content-Length")
 			expected = int(length) if length is not None else None
 			received = 0
-			with tempfile.NamedTemporaryFile(mode="wb", dir=os.path.dirname(os.path.abspath(out_path)), suffix=".part", delete=False) as f:
+			with tempfile.NamedTemporaryFile(mode="wb", dir=os.path.dirname(os.path.abspath(out_path)), prefix="freeAudio-podcast-", suffix=".part", delete=False) as f:
 				partial = f.name
 				while True:
-					chunk = resp.read(65536)
+					check_cancel()
+					chunk = resp.read1(65536)
 					if not chunk:
 						break
 					f.write(chunk)
 					received += len(chunk)
+					if progress is not None:
+						progress(received, expected)
 				if not received or (expected is not None and received != expected):
 					raise IOError("The episode download is incomplete")
 				f.flush()
 				os.fsync(f.fileno())
 		# On Windows rename fails if the destination already exists. Never replace
 		# an earlier download, including one completed by another app instance.
+		check_cancel()
 		if os.path.exists(out_path):
 			raise FileExistsError(out_path)
 		os.rename(partial, out_path)

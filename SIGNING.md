@@ -31,3 +31,9 @@ The in-app updater validates HTTPS origins, release metadata, exact filenames,
 file sizes and GitHub-provided SHA-256 digests. These checks detect changed or
 incomplete downloads; they are not an Authenticode publisher signature and do
 not guarantee that antivirus software accepts a release.
+
+## Optional build integration
+
+The build accepts `--sign-hook C:/private/sign_release.py --signtool C:/SDK/signtool.exe`. Both arguments are required together. The hook must be outside the source tree. It receives one file path and must sign and timestamp that file using an authorized signing identity. Credentials belong in the signing provider or CI secret store; never in source files or command arguments.
+
+The main application is signed and verified before the portable ZIP and installer are built. The installer is then signed and verified before SHA256SUMS is generated. Each signature is checked with `signtool verify /pa /all /v`; any signing or verification failure aborts the build. Builds without these options remain unsigned. This integration does not create a certificate, approve a signing service, or make the current project eligible for Foundation signing. No signing credentials are configured in the public workflow.

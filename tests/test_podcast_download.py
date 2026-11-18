@@ -33,6 +33,7 @@ class PodcastMenuTests(unittest.TestCase):
         exec(compile(ast.fix_missing_locations(ast.Module(body=[cls],type_ignores=[])), '<dialog-handlers>', 'exec'),namespace)
         self.controller = c = namespace['Controller']()
         self.ep = types.SimpleNamespace(title='Selected episode',url='https://example.org/episode.mp3')
+        c._plugin=None
         c._podcast_preview_episodes=[self.ep]
         c._podcast_preview_list=Mock()
         c._podcast_preview_list.GetSelection.return_value=0

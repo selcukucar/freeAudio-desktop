@@ -324,6 +324,7 @@ def _init_config():
 		# _rebuild_getem_resume_url() does for audio books. See
 		# GlobalPlugin._resume_last_station().
 		"last_station_podcast_feed_url":     "string(default='')",
+		"last_station_podcast_resume_key":   "string(default='')",
 		"resume_on_start":  "boolean(default=False)",
 		"hotkey_p_action":  "string(default='resume')",
 		"hotkey_p_double":  "string(default='none')",
@@ -601,6 +602,8 @@ class GlobalPlugin(BookmarkMixin, ObligatoMixin, MiscTogglesMixin, TrackInfoMixi
 			# Translators: Spoken when a recording finishes normally; %s is the saved output filename.
 			_notify, _("Recording finished: %s") % os.path.basename(rec.output_path or "")
 		)
+		self._recorder._notify_folder_error = lambda reason: wx.CallAfter(
+			ui.message, _("Recording folder unavailable; recording was not started: %s") % reason)
 		self._recorder._notify_failed = lambda rec: wx.CallAfter(
 			_notify,
 			# Translators: Spoken when a recording never actually started because the stream connection failed for its whole scheduled window; %s is the station name.

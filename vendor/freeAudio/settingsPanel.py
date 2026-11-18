@@ -821,6 +821,12 @@ class freeAudioSettingsPanel(gui.settingsDialogs.SettingsPanel):
 	def onSave(self):
 		if getattr(self, "_settings_were_reset", False):
 			return
+		from . import recorder as recorder_module
+		try:
+			recordings_folder = recorder_module.validate_recordings_folder(self._recordings_dir.GetValue())
+		except Exception:
+			self._recordings_dir.SetFocus()
+			raise
 		vol = self._volume.GetValue()
 		config.conf["freeAudio"]["volume"]          = min(100, vol)
 		config.conf["freeAudio"]["resume_on_start"]        = self._resume.GetValue()
@@ -904,7 +910,7 @@ class freeAudioSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		except (AttributeError, IndexError):
 			pass
 
-		config.conf["freeAudio"]["recordings_dir"] = self._recordings_dir.GetValue().strip()
+		config.conf["freeAudio"]["recordings_dir"] = recordings_folder
 
 		config.conf["freeAudio"]["jukebox_search_network_drives"] = \
 			self._jukebox_search_network_drives.GetValue()

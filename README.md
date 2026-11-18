@@ -1,7 +1,16 @@
-# freeAudio Desktop 1.2.2
+# freeAudio Desktop 2.0.0
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
+
+## 2.0: İndirmeler ve dinleme geçmişi
+
+- Ana penceredeki **İndirmeler ve çevrimdışı podcastler** düğmesi kuyruk, ilerleme, iptal, yeniden deneme ve çevrimdışı oynatmayı açar. İndirmeleri mevcut bölüm menülerinden başlatın; iki bölüm aynı anda indirilir.
+- Listelerde oklarla seçim yapın; Enter seçili indirilen bölümü veya geçmişteki medyayı oynatır. Tab ile işlem düğmelerine ulaşın. F5/F6 ve F8 bu pencerelerde de çalışır. Pencereyi kapatmak indirmeyi durdurmaz.
+- **İndirilen bölümler** süzgeci tamamlanmış dosyaları gösterir. **Listeden kaldır** dosyayı korur. **İndirilen dosyayı sil** ayrıca onay ister. Silinmiş veya taşınmış dosyalar oynatılabilir gösterilmez.
+- Uygulamadan çıkarken aktif indirmeler için onay istenir; iptal edilen veya kesilen indirmeler yeniden denenebilir. Yeniden deneme dosyayı baştan indirir. Önceki 1.2.2 dosyası aynı bölüm için yeniden İndir seçildiğinde listeye alınır; üzerine yazılmaz.
+- **Dinleme geçmişi** son 200 farklı medyayı tutar. Podcast ve kitaplarda mevcut konum kaydı kullanılır. Geçmişi temizlemek dosyaları silmez. GETEM için hesap ve kitaplık erişimi gerekir.
+- **Hakkında** düğmesinde özgün eklentinin geliştiricisi Çağrı Doğan’a teşekkür, kaynak bağlantısı ve lisans bilgileri bulunur. İlk açılışta ek pencere açılmaz.
 
 ## Podcast bölümü indirme
 
@@ -169,3 +178,15 @@ When automatic startup checks are enabled, the application checks after about fi
 Main-window volume: F5 decreases and F6 increases by five without opening the library. The native Volume (%) field accepts arrows or a typed value committed with Enter. Library/global changes stay synchronized; active text edits are preserved. Native playback/application groups, larger type and buttons, and adaptive columns improve the presentation while keeping the existing content windows, commands and tab sequence.
 
 New setup defaults to all users in Program Files and requests Windows elevation. Current-user setup remains available in LocalAppData/Programs. Updates preserve the existing scope and directory. To change scope, uninstall the previous application before reinstalling; Roaming profile data is retained. Both modes keep each user’s settings in %APPDATA%/freeAudioDesktop. Portable data behavior is unchanged.
+
+## Emek ve teşekkür
+
+freeAudio Desktop, Çağrı Doğan tarafından geliştirilen freeAudio NVDA eklentisi temel alınarak Selçuk Uçar tarafından bağımsız bir Windows masaüstü uygulamasına dönüştürülmüş ve geliştirilmiştir. Özgün eklenti ve temelini oluşturan çalışmalar için Çağrı Doğan’a teşekkür ederiz. Diğer katkıda bulunanların ve bileşen yazarlarının mevcut telif ve lisans bildirimleri korunmaktadır.
+
+[Özgün freeAudio NVDA eklentisi](https://github.com/Surveyor123/freeAudio)
+
+Bu teşekkür uygulamanın Hakkında penceresinde ve Türkçe/İngilizce yardımında da bulunur.
+
+## Kayıt dizini
+
+Ayarlardaki **Kayıt klasörü** alanı yeni radyo kayıtları ve podcast indirmeleri için ortak hedeftir. D:\Kayıtlar gibi tam bir yol seçip Tamam ile kaydedin. Tırnaklı kopyalanan yollar da kabul edilir. Geçersiz veya kullanılamayan bir dizin seçilirse başka bir klasöre geçilmez; hata bildirilir. Planlı kaydın ayrıca seçilmiş özel dizini varsa o kullanılır. Başlamış kayıt/indirme mevcut hedefine devam eder; yeni işlemler yeni dizini kullanır. Podcastte Yeniden dene de güncel dizini kullanır. Eski dosyalar otomatik taşınmaz. Ayar boşsa Windows Belgeler klasörünün güncel konumu kullanılır.

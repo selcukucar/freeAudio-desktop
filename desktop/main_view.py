@@ -68,10 +68,11 @@ def build_main_view(frame, notifications, translate, volume):
     tools_sizer = wx.StaticBoxSizer(tools, wx.VERTICAL)
     browser = button(tools, _('&Open library'))
     tools_sizer.Add(browser, 0, wx.EXPAND | wx.ALL, 12)
-    names = [('&Settings', 'settings'), ('&Commands and shortcuts', 'commands'),
+    names = [('&Downloads and offline podcasts', 'downloads'), ('&Listening history', 'listening'),
+             ('&Settings', 'settings'), ('&Commands and shortcuts', 'commands'),
              ('&Notification history', 'messages'), ('&Language / Dil', 'language'),
              ('Check for &updates', 'updates'), ('Profile &backup and restore', 'backup'),
-             ('&Help', 'help'), ('E&xit', 'exit')]
+             ('&Help', 'help'), ('&About freeAudio Desktop', 'about'), ('E&xit', 'exit')]
     controls = {name: button(tools, _(label)) for label, name in names}
     grid = wx.FlexGridSizer(cols=2, hgap=12, vgap=10)
     grid.AddGrowableCol(0)

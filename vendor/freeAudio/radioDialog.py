@@ -5617,14 +5617,8 @@ class RadioDialog(wx.Dialog):
 
 	def _liked_songs_path(self):
 		"""Return the path to likedSongs.txt, mirroring __init__.py logic."""
-		custom_dir = config.conf["freeAudio"].get("recordings_dir", "").strip()
-		if custom_dir and os.path.isabs(custom_dir):
-			recordings_dir = custom_dir
-		else:
-			recordings_dir = os.path.join(
-				os.path.expanduser("~"), "Documents", "freeAudio Recordings"
-			)
-		return os.path.join(recordings_dir, "likedSongs.txt")
+		from . import recorder as recorder_module
+		return os.path.join(recorder_module._recordings_dir(), "likedSongs.txt")
 
 	def _build_liked_tab(self):
 		"""Liked Songs tab: list + Spotify / YouTube / Lyrics / Remove / Refresh buttons."""
@@ -6776,6 +6770,16 @@ class RadioDialog(wx.Dialog):
 			self._download_podcast_episode(episodes[idx])
 
 	def _download_podcast_episode(self, episode):
+		# Standalone desktop queue also handles preview episodes without subscriptions.
+		manager = getattr(self._plugin, "_desktop_downloads", None) if getattr(self, "_plugin", None) else None
+		if manager is not None:
+			try:
+				path, filename = podcast.episode_download_target(episode.title, episode.url)
+				item = manager.enqueue(episode.title, episode.url, path)
+				ui.message(_("Download complete: %s") % str(manager.resolve_path(item)) if item["state"] == "completed" else _("Downloading: %s") % episode.title)
+			except Exception as error:
+				ui.message(_("Download failed: %s") % str(error))
+			return
 		# Capture the URL and title before starting the worker: selection may change.
 		url, title = episode.url, episode.title
 		active = getattr(self, "_podcast_downloads", None)

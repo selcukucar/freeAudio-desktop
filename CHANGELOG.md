@@ -1,3 +1,15 @@
+# 2.0.0
+
+- Kayıt dizini kullanımı merkezileştirildi: yeni kayıtlar, podcast/kitap indirmeleri, beğenilen şarkı listesi ve klasörü aç komutu seçilen dizini kullanır. Tırnaklı yollar normalleştirilir; ayar kaydedilirken yazılabilirlik sınanır. Geçersiz veya kullanılamayan dizinde varsayılan C: klasörüne geçilmez. Planlı kaydın özel hedefi varsa korunur. Podcast yeniden denemeleri güncel dizini kullanır.
+
+- Ana pencereye İndirmeler ve çevrimdışı podcastler eklendi. İki eşzamanlı indirme, kuyruk, bayt/MB ilerlemesi, iptal, yeniden deneme ve klasörü açma işlemleri bulunur. İlerleme kullanıcı istediğinde bildirilir.
+- Tamamlanmış podcastler çevrimdışı oynatılabilir; özgün bölüm adresi konum anahtarı olarak korunur. İndirmeler yeniden açılışta listede kalır. Kesilen indirmeler kullanıcı seçimiyle baştan denenir. Mevcut 1.2.2 dosyaları aynı bölüm indirilmek istendiğinde listeye alınır, üzerine yazılmaz.
+- Listeden kaldır dosyayı korur; dosyayı sil ayrıca onay ister. Aktif indirmeler uygulama çıkışında onayla iptal edilir; pencereyi kapatmak indirmeyi kesmez.
+- Dinleme geçmişi son 200 farklı radyo, podcast, kitap veya yerel medyayı yeniden açar. GETEM geçici proxy adresleri saklanmaz; kitap bağlantısı yeniden oluşturulur. Geçmişi temizlemek medya dosyalarını silmez.
+- Yeni pencereler standart Windows kontrolleri kullanır. Enter oynatır, Tab düğmelere geçer; F5/F6 ses ve F8 durdur/oynat işlevleri korunur. Liste yenilemeleri seçimi korur, odağı değiştirmez.
+- Hakkında penceresine, yardım dosyalarına ve README’ye özgün freeAudio NVDA eklentisinin geliştiricisi Çağrı Doğan için teşekkür ve kaynak bağlantısı eklendi. Mevcut telif ve lisans bildirimleri korunur.
+- Yetkili bir imzalama hizmeti edinildiğinde bağlanabilmesi için isteğe bağlı harici imzalama kancası eklendi. Uygulama paketlemeden, kurulum dosyası SHA-256 hesaplanmadan önce imzalanıp doğrulanabilir. Bu sürümde bağlı sertifika olmadığı için yayımlanan paketler imzasızdır.
+
 # 1.2.2
 
 - Podcast arama sonuçlarındaki bölüm önizleme menüsüne Bölümü indir eklendi. İçerik tuşu veya Shift+F10 ile erişilebilir; indirmek için abone olmak gerekmez. Abone olunan bölüm listesindeki indirme de aynı yöntemi kullanır.

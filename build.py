@@ -41,7 +41,15 @@ def main():
     parser.add_argument('--build-dir', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--iscc', type=Path, required=True)
+    parser.add_argument('--sign-hook', type=Path, help='External Python hook: hook.py FILE; must sign and timestamp FILE')
+    parser.add_argument('--signtool', type=Path, help='Windows SDK signtool.exe, required with --sign-hook')
     args = parser.parse_args()
+    if bool(args.sign_hook) != bool(args.signtool):
+        parser.error('--sign-hook and --signtool must be supplied together')
+    if args.sign_hook and args.sign_hook.resolve().is_relative_to(ROOT.resolve()):
+        parser.error('Keep the signing hook outside the source tree')
+    from tools.signing import sign_file
+
     build = args.build_dir.resolve()
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -52,6 +60,8 @@ def main():
                str(ROOT / 'freeAudioDesktop.spec')]
     subprocess.run(command, check=True, cwd=ROOT)
     stage = build / 'dist/freeAudioDesktop'
+    if args.sign_hook:
+        sign_file(stage / 'freeAudioDesktop.exe', args.sign_hook, args.signtool)
     (stage / 'portable.flag').write_text('Portable data directory: ./data\n', encoding='utf-8')
     shutil.copyfile(ROOT / 'README.md', stage / 'README.md')
     portable = output / f'freeAudio-Desktop-{VERSION}-win64-portable.zip'
@@ -62,6 +72,8 @@ def main():
     subprocess.run([str(args.iscc.resolve()), '/Qp', '/DStageDir=' + str(stage),
                     '/DReleaseDir=' + str(output), '/DAppVersion=' + VERSION,
                     str(ROOT / 'installer.iss')], check=True)
+    if args.sign_hook:
+        sign_file(output / f'freeAudio-Desktop-{VERSION}-win64-setup.exe', args.sign_hook, args.signtool)
     source_zip = output / f'freeAudio-Desktop-{VERSION}-source.zip'
     with zipfile.ZipFile(source_zip, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for file in source_files(ROOT, build, output):

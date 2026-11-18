@@ -80,6 +80,28 @@ class LifecycleTests(unittest.TestCase):
         self.assertFalse(frame._closing)
         self.assertIsNone(frame._pending_update)
 
+    def test_download_exit_can_be_cancelled_and_waits_without_freezing_ui(self):
+        frame=self.frame();frame.plugin._recorder.is_recording.return_value=False
+        frame.plugin._recorder.get_active_scheduled.return_value=[]
+        frame._download_shutdown_requested=False
+        frame.downloads=Mock();frame.downloads.ACTIVE=('queued','downloading')
+        frame.downloads.snapshot.return_value=[{'state':'downloading'}]
+        frame.downloads.workers=[Mock()];frame.downloads.workers[0].is_alive.return_value=True
+        frame.Close=Mock();event=Mock();event.CanVeto.return_value=True
+        with patch('main.wx.MessageBox',return_value=wx.NO):
+            DesktopFrame.exit(frame,event)
+        frame.downloads.close.assert_not_called();frame.plugin.terminate.assert_not_called()
+        with patch('main.wx.MessageBox',return_value=wx.YES),patch('main.wx.CallLater') as later:
+            DesktopFrame.exit(frame,event)
+            self.assertTrue(frame._download_shutdown_requested)
+            frame.downloads.close.assert_called_once()
+            later.assert_called_once_with(100,frame.Close)
+        frame.plugin.terminate.assert_not_called()
+        frame.downloads.workers[0].is_alive.return_value=False
+        frame.downloads.snapshot.return_value=[{'state':'cancelled'}]
+        DesktopFrame.exit(frame,event)
+        frame.plugin.terminate.assert_called_once()
+
     def test_shutdown_cancels_scheduled_startup_update(self):
         frame = self.frame()
         frame._startup_update_timer = Mock()
