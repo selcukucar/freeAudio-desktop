@@ -22,7 +22,7 @@ def wait_for(predicate):
 class DownloadQueueTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.managers = []
 
     def tearDown(self):

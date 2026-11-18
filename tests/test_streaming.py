@@ -135,7 +135,7 @@ class StreamingTests(unittest.TestCase):
     def test_selected_recording_folder_is_used_for_real_capture_and_podcast_without_fallback(self):
         work = ROOT.parents[1] / 'work'
         with tempfile.TemporaryDirectory(dir=work if work.is_dir() else None) as directory:
-            selected = Path(directory, 'Seçilen kayıt klasörü')
+            selected = Path(directory, 'Seçilen kayıt klasörü').resolve()
             config = sys.modules['config'].conf['freeAudio']
             with patch.dict(config, recordings_dir='"' + str(selected) + '"'), patch.object(self.recorder, '_default_recordings_dir', side_effect=AssertionError('Unwanted default destination')):
                 self.assertEqual(Path(self.recorder._recordings_dir()), selected)
