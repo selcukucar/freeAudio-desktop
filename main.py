@@ -77,6 +77,11 @@ class DesktopFrame(wx.Frame):
         settings_button, commands = view.settings, view.commands
         messages, language, updates = view.messages, view.language, view.updates
         help_button, backup_button, exit_button = view.help, view.backup, view.exit
+        self._navigation_request = None
+        plugin._desktop_navigate = self.navigate_media
+        view.previous.Bind(wx.EVT_BUTTON, lambda event: self.navigate_media(-1))
+        view.following.Bind(wx.EVT_BUTTON, lambda event: self.navigate_media(1))
+        view.record.Bind(wx.EVT_BUTTON, lambda event: plugin._toggle_instant_recording())
         view.volume_down.Bind(wx.EVT_BUTTON, lambda event: self.adjust_volume(-5))
         view.volume_up.Bind(wx.EVT_BUTTON, lambda event: self.adjust_volume(5))
         self._volume_control.Bind(wx.EVT_SPINCTRL, self.on_volume_input)
@@ -127,6 +132,8 @@ class DesktopFrame(wx.Frame):
         if self._closing:
             return
         player = self.plugin._player
+        if getattr(self, "_main_view", None) is not None:
+            self.refresh_main_media_controls()
         if not player.has_media() and hasattr(self, 'listening_history'):
             self.listening_history.last_key = None
         if player.is_playing() and hasattr(self, 'listening_history'):
@@ -156,6 +163,61 @@ class DesktopFrame(wx.Frame):
         for button in (self._stop_button, getattr(getattr(self.plugin, '_dialog', None), '_stop_btn', None)):
             if button and button.GetLabel() != button_label:
                 button.SetLabel(button_label)
+
+    def refresh_main_media_controls(self):
+        view = self._main_view
+        recorder = getattr(self.plugin, '_recorder', None)
+        active = bool(recorder and recorder.is_recording())
+        busy = bool(getattr(self.plugin, '_instant_record_busy', False))
+        key = self.shortcuts.effective.get('toggleRecord', '')
+        key_label = '+'.join({'control':'Ctrl','alt':'Alt','shift':'Shift'}.get(part,part.upper()) for part in key.split('+'))
+        unavailable = any(item.startswith('toggleRecord:') for item in self.shortcuts.failures)
+        label = self.translate('Stop radio recording' if active else 'Start radio recording')
+        if key and not unavailable: label += ' (' + key_label + ')'
+        if view.record.GetLabel() != label: view.record.SetLabel(label)
+        view.record.Enable(True)
+        hint = self.translate('Recording continues independently of playback.') if active else self.translate('Record the playing radio. Select a live station first.')
+        hint += ' ' + (self.translate('Recording shortcut unavailable: %s' if unavailable else 'Recording shortcut: %s') % key_label if key else self.translate('No global recording shortcut is assigned.'))
+        if getattr(self, '_recording_hint_text', None) != hint:
+            self._recording_hint_text = hint
+            view.relayout()
+
+    def navigate_media(self, direction):
+        if self._closing: return
+        player = self.plugin._player
+        station = dict(player.get_current_station() or {})
+        if not player.has_media() or station.get('media_kind') not in ('podcast','audiobook'):
+            self.notifications.message(self.translate('Select a podcast episode or audio book chapter first.'))
+            return
+        gate = self._playback_gate
+        if self._navigation_request == gate.current:
+            self.notifications.message(self.translate('An episode is already being opened.'))
+            return
+        token = gate.request()
+        self._navigation_request = token
+        self.notifications.message(self.translate('Opening episode / chapter...'))
+        def work():
+            target = commit = error = None
+            try:
+                from desktop.navigation import adjacent_media
+                target, commit = adjacent_media(self.plugin,station,direction,self.downloads)
+            except Exception as exc: error = str(exc)
+            wx.CallAfter(self.navigation_done,token,target,commit,error)
+        threading.Thread(target=work,daemon=True,name='desktop-navigation').start()
+
+    def navigation_done(self, token, target, commit, error):
+        if not self or self._closing or self._playback_gate.current != token: return
+        self._navigation_request = None
+        if error:
+            self._playback_gate.cancel()
+            self.notifications.message(self.translate(error))
+            return
+        try:
+            if commit: commit()
+            self.plugin._play_station(target)
+        except Exception as exc:
+            self._playback_gate.cancel()
+            self.notifications.message(self.translate('Operation failed: %s') % str(exc))
 
     def adjust_volume(self, delta):
         if not self._closing:
@@ -490,8 +552,8 @@ class DesktopFrame(wx.Frame):
         installed = bool(getattr(sys, 'frozen', False) and not portable)
         first = _('Download and install update (application restarts)') if installed else _('Download portable update ZIP')
         choices = [first, _('Download only'), _('Open release page')]
-        with wx.SingleChoiceDialog(self, _('A new version is available: %s') % version,
-                                   _('Application update'), choices) as choice:
+        from desktop.update_dialog import UpdateOptionsDialog
+        with UpdateOptionsDialog(self, self.settings['desktop']['update_repository'], version, choices, _) as choice:
             if choice.ShowModal() != wx.ID_OK:
                 return
             selection = choice.GetSelection()

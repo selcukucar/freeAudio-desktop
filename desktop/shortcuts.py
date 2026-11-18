@@ -131,17 +131,27 @@ class Shortcuts:
             self.commands = commands
             self.register()
 
+    def command_names(self, library=False):
+        prefixes = ('playFavoriteStation_', 'playJukeboxEntry_', 'playAudiobook_')
+        return [name for name in self.commands if name.startswith(prefixes) == library]
+
     def show(self, parent, translate):
         self.refresh_catalog()
         _ = translate
         dialog = wx.Dialog(parent, title=_('Commands and shortcuts'), size=(820, 580),
                            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticText(dialog, label=_('Command group')), 0, wx.ALL, 8)
+        group = wx.Choice(dialog, choices=[_('Application commands'), _('Favourite and library item shortcuts')])
+        group.SetName(_('Command group'))
+        group.SetSelection(0)
+        sizer.Add(group, 0, wx.EXPAND | wx.ALL, 8)
+        names = self.command_names()
         def entries():
             active = {item[0] for item in self.registered.values()}
             return [label + ' — ' + (self.effective.get(name) or _('No shortcut')) +
                     (' — ' + _('Unavailable') if self.effective.get(name) and name not in active else '')
-                    for name, (label, fn) in self.commands.items()]
+                    for name in names for label, fn in [self.commands[name]]]
         listing = wx.ListBox(dialog, choices=entries())
         listing.SetName(_('Commands'))
         sizer.Add(listing, 1, wx.EXPAND | wx.ALL, 8)
@@ -162,7 +172,6 @@ class Shortcuts:
             buttons.Add(button, 0, wx.ALL, 8)
         sizer.Add(buttons)
         dialog.SetSizer(sizer)
-        names = list(self.commands)
         def select(event=None):
             index = listing.GetSelection()
             if index != wx.NOT_FOUND:
@@ -177,7 +186,7 @@ class Shortcuts:
                 if value:
                     parsed = parse_hotkey(value)
                     overrides_now = self.settings['desktop'].get('shortcuts', {})
-                    for other in names:
+                    for other in self.commands:
                         other_value = overrides_now.get(other, self.defaults.get(other, ''))
                         if other != name and other_value and parse_hotkey(other_value) == parsed:
                             raise ValueError(_('This shortcut is assigned to another command.'))
@@ -219,8 +228,18 @@ class Shortcuts:
             if index != wx.NOT_FOUND:
                 field.SetValue(self.defaults.get(names[index], ''))
                 save_shortcut(event)
+        def change_group(event=None):
+            nonlocal names
+            names = self.command_names(library=group.GetSelection() == 1)
+            listing.Set(entries())
+            for button in (run,save,reset): button.Enable(bool(names))
+            field.SetValue('')
+            if names:
+                listing.SetSelection(0)
+                select()
+        group.Bind(wx.EVT_CHOICE, change_group)
         listing.Bind(wx.EVT_LISTBOX, select)
-        run.Bind(wx.EVT_BUTTON, lambda event: self.execute(names[listing.GetSelection()]))
+        run.Bind(wx.EVT_BUTTON, lambda event: self.execute(names[listing.GetSelection()]) if listing.GetSelection() != wx.NOT_FOUND else None)
         save.Bind(wx.EVT_BUTTON, save_shortcut)
         reset.Bind(wx.EVT_BUTTON, reset_shortcut)
         if names:

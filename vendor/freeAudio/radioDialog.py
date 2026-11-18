@@ -6152,6 +6152,7 @@ class RadioDialog(wx.Dialog):
 		ep_btn_sizer.Add(self._episode_download_btn, 0)
 		sizer.Add(ep_btn_sizer, 0, wx.LEFT | wx.BOTTOM, 8)
 
+		self._add_desktop_episode_navigation(panel, sizer)
 		panel.SetSizer(sizer)
 
 		# --- Bind events ---
@@ -7378,6 +7379,17 @@ class RadioDialog(wx.Dialog):
 		# Translators: Accessible name of the audio book search field - searches both GETEM and LibriVox at once
 		return _("Search audio books by title, author, narrator, subject, or publisher. Press enter to search")
 
+	def _add_desktop_episode_navigation(self, panel, sizer):
+		callback = getattr(self._plugin, "_desktop_navigate", None) if self._plugin else None
+		if callback is None:
+			return
+		row = wx.WrapSizer(wx.HORIZONTAL, flags=wx.REMOVE_LEADING_SPACES)
+		for label, direction in ((_("Previous episode / chapter"), -1), (_("Next episode / chapter"), 1)):
+			button = wx.Button(panel, label=label)
+			button.Bind(wx.EVT_BUTTON, lambda event, step=direction: callback(step))
+			row.Add(button, 0, wx.ALL, 4)
+		sizer.Add(row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 4)
+
 	def _build_audiobooks_tab(self):
 		"""Audio book search and library tab. Search UI is modeled on the
 		Podcasts tab above: a single search field, a results list that
@@ -7442,6 +7454,7 @@ class RadioDialog(wx.Dialog):
 		self._getem_details.SetMinSize((-1, 80))
 		sizer.Add(self._getem_details, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+		self._add_desktop_episode_navigation(panel, sizer)
 		panel.SetSizer(sizer)
 
 		# --- Bind events ---

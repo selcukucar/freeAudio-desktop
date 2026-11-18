@@ -117,7 +117,7 @@ class NativeMainViewTests(unittest.TestCase):
                 try:
                     view=frame._main_view
                     playback=[w for w in view.stop.GetParent().GetChildren() if isinstance(w,(wx.Button,wx.SpinCtrl))]
-                    self.assertEqual(playback,[view.stop,view.pause,view.volume_down,view.volume,view.volume_up])
+                    self.assertEqual(playback,[view.stop,view.pause,view.previous,view.following,view.record,view.volume_down,view.volume,view.volume_up])
                     tools=[w for w in view.browser.GetParent().GetChildren() if isinstance(w,wx.Button)]
                     self.assertEqual(tools,[view.browser,view.downloads,view.listening,view.settings,view.commands,view.messages,view.language,view.updates,view.backup,view.help,view.about,view.exit])
                     self.assertEqual(view.volume.GetName(),translate('Volume (%)'))
@@ -162,6 +162,49 @@ class NativeMainViewTests(unittest.TestCase):
             if downloads: downloads.Close()
             if history: history.Close()
             self.cleanup(frame,directory)
+
+    def test_record_button_tracks_recording_after_playback_stops_and_shows_custom_shortcut(self):
+        frame,directory,translate=self.build_frame('tr')
+        try:
+            frame.plugin._recorder=Mock();frame.plugin._recorder.is_recording.return_value=True
+            frame.plugin._toggle_instant_recording=Mock()
+            frame.shortcuts.effective['toggleRecord']='control+alt+e'
+            frame.refresh_main_media_controls()
+            self.assertEqual(frame._main_view.record.GetLabel(),'Radyo kaydını durdur (Ctrl+Alt+E)')
+            self.assertIn('Ctrl+Alt+E',frame._main_view.record_hint.GetLabel())
+            before=wx.Window.FindFocus()
+            event=wx.CommandEvent(wx.EVT_BUTTON.typeId,frame._main_view.record.GetId())
+            frame._main_view.record.GetEventHandler().ProcessEvent(event)
+            frame.plugin._toggle_instant_recording.assert_called_once()
+            frame.plugin._recorder.is_recording.return_value=False
+            frame.refresh_main_media_controls()
+            self.assertEqual(frame._main_view.record.GetLabel(),'Radyo kaydını başlat (Ctrl+Alt+E)')
+            self.assertEqual(before,wx.Window.FindFocus())
+            frame.shortcuts.failures=['toggleRecord: unavailable']
+            frame.refresh_main_media_controls()
+            self.assertNotIn('Ctrl+Alt+E',frame._main_view.record.GetLabel())
+            self.assertIn('kullanılamıyor',frame._main_view.record_hint.GetLabel())
+        finally:self.cleanup(frame,directory)
+
+    def test_release_notes_load_into_native_field_and_failure_keeps_actions_available(self):
+        import time
+        from desktop.update_dialog import UpdateOptionsDialog
+        frame,directory,translate=self.build_frame('tr')
+        try:
+            for fail in (False,True):
+                with patch('desktop.updates.release_notes',side_effect=OSError('offline') if fail else None,return_value='New recording controls'):
+                    dialog=UpdateOptionsDialog(frame,'owner/repo','2.1.0',['Download','Open page'],translate)
+                    try:
+                        deadline=time.monotonic()+2
+                        while dialog.notes.GetValue()==translate('Loading release notes...') and time.monotonic()<deadline:
+                            self.app.ProcessPendingEvents();time.sleep(.01)
+                        self.assertNotEqual(dialog.notes.GetValue(),translate('Loading release notes...'))
+                        self.assertEqual(dialog.notes.GetPrevSibling().GetLabel(),'Bu sürümdeki yenilikler')
+                        self.assertTrue(dialog.actions.IsEnabled())
+                        if fail:self.assertIn('yüklenemedi',dialog.notes.GetValue())
+                        else:self.assertEqual(dialog.notes.GetValue(),'New recording controls')
+                    finally:dialog.Destroy();self.app.ProcessPendingEvents()
+        finally:self.cleanup(frame,directory)
 
     def test_compact_window_keeps_content_inside_horizontal_viewport(self):
         frame,directory,translate=self.build_frame('tr')

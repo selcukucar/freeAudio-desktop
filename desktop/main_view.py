@@ -45,6 +45,17 @@ def build_main_view(frame, notifications, translate, volume):
     for item in (stop, pause): transport.Add(item, 1, wx.EXPAND)
     playback_sizer.Add(transport, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
 
+    previous = button(playback, _('Previous episode / chapter'))
+    following = button(playback, _('Next episode / chapter'))
+    navigation = wx.FlexGridSizer(cols=2, hgap=12, vgap=10)
+    navigation.AddGrowableCol(0); navigation.AddGrowableCol(1)
+    for item in (previous, following): navigation.Add(item, 1, wx.EXPAND)
+    playback_sizer.Add(navigation, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+    record = button(playback, _('Start radio recording'))
+    playback_sizer.Add(record, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+    record_hint = wx.StaticText(playback, label='')
+    playback_sizer.Add(record_hint, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
     volume_row = wx.WrapSizer(wx.HORIZONTAL, flags=wx.REMOVE_LEADING_SPACES)
     down = button(playback, _('Decrease volume (F5)'))
     # The native edit portion takes its accessible name from the preceding label.
@@ -103,13 +114,14 @@ def build_main_view(frame, notifications, translate, volume):
         busy = True
         try:
             width = max(220, panel.GetClientSize().width - 72)
-            for row, items in ((transport, (stop, pause)), (grid, tuple(controls.values()))):
+            for row, items in ((transport, (stop, pause)), (navigation, (previous, following)), (grid, tuple(controls.values()))):
                 columns = 2 if width >= 2 * max(item.GetBestSize().width for item in items) + 24 else 1
                 if columns != row.GetCols():
                     if row.GetCols() == 2: row.RemoveGrowableCol(1)
                     row.SetCols(columns)
                     if columns == 2: row.AddGrowableCol(1)
             for item, raw in ((subtitle, subtitle_text), (hint, hint_text),
+                              (record_hint, getattr(frame, '_recording_hint_text', '')),
                               (status, getattr(frame, '_last_playback_label', None) or status.GetLabel()),
                               (update_status, getattr(frame, '_update_notice_text', None) or update_status.GetLabel()),
                               (notifications.control, notifications.history[-1] if notifications.history else '')):
@@ -123,5 +135,6 @@ def build_main_view(frame, notifications, translate, volume):
     notifications.on_layout = relayout
     wx.CallAfter(relayout)
     return SimpleNamespace(panel=panel, stop=stop, pause=pause, browser=browser,
+                           previous=previous, following=following, record=record, record_hint=record_hint,
                            status=status, update_status=update_status, volume=spin,
                            volume_down=down, volume_up=up, relayout=relayout, **controls)

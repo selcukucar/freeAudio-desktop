@@ -186,3 +186,18 @@ def launch_installer(asset, path, app_directory, language='tr'):
             '/LANG=' + ('turkish' if language == 'tr' else 'english'),
             '/LOG=' + str(path.parent / ('install-' + asset.version + '.log'))]
     return subprocess.Popen(args, shell=False, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+
+
+def release_notes(repository, version):
+    if not valid_repository(repository) or Version(version).is_prerelease:
+        raise ValueError('Invalid release')
+    request = urllib.request.Request('https://api.github.com/repos/' + repository + '/releases/tags/v' + quote(version,safe=''),headers={'User-Agent':'freeAudio-Desktop-updater'})
+    with urllib.request.urlopen(request,timeout=15) as response:
+        raw = response.read(1024*1024+1)
+    if len(raw)>1024*1024: raise ValueError('Oversized release metadata')
+    data=json.loads(raw)
+    if data.get('tag_name') != 'v'+version or data.get('draft') or data.get('prerelease'):
+        raise ValueError('Release changed or is not stable')
+    body=data.get('body') or ''
+    if not isinstance(body,str): raise ValueError('Invalid release notes')
+    return body[:200000].strip()

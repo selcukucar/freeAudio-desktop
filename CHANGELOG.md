@@ -1,3 +1,11 @@
+# 2.1.0
+
+- Ana pencereye Radyo kaydını başlat / durdur düğmesi eklendi. Atanmış kayıt kısayolu görünür; kayıt oynatmadan bağımsız olarak durdurulabilir. Düğme odağı işlem boyunca korunur.
+- Ana pencereye ve Podcast / Sesli Kitaplar sekmelerine Önceki bölüm / Sonraki bölüm düğmeleri eklendi. Çalan içeriğin bölümü esas alınır; kitaplar arasında atlanmaz. İlk/son bölümde bilgi verilir. Çevrimdışı podcastlerde indirilenler listesinin sırası kullanılır.
+- Bölüm bağlantıları arka planda hazırlanır. F8 veya başka oynatma komutuyla iptal edilen bir isteğin geç tamamlanıp yeniden oynatma başlatması engellenir.
+- Komutlar ve kısayollar, uygulama komutları ile favori/kitaplık öğelerinin kısayollarını ayrı gruplarda gösterir. Bir favori adına otomatik oluşturulan komutlar ve atanmış tuşları korunur.
+- Güncelleme penceresine ekran okuyucuyla okunabilen sürüm notları ve işlem seçimi eklendi. Notlar arka planda yüklenir; yüklenemese de indirme seçenekleri kullanılabilir.
+
 # 2.0.0
 
 - Kayıt dizini kullanımı merkezileştirildi: yeni kayıtlar, podcast/kitap indirmeleri, beğenilen şarkı listesi ve klasörü aç komutu seçilen dizini kullanır. Tırnaklı yollar normalleştirilir; ayar kaydedilirken yazılabilirlik sınanır. Geçersiz veya kullanılamayan dizinde varsayılan C: klasörüne geçilmez. Planlı kaydın özel hedefi varsa korunur. Podcast yeniden denemeleri güncel dizini kullanır.

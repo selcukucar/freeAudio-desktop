@@ -1,4 +1,4 @@
-# freeAudio Desktop 2.0.0
+# freeAudio Desktop 2.1.0
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
@@ -190,3 +190,7 @@ Bu teşekkür uygulamanın Hakkında penceresinde ve Türkçe/İngilizce yardım
 ## Kayıt dizini
 
 Ayarlardaki **Kayıt klasörü** alanı yeni radyo kayıtları ve podcast indirmeleri için ortak hedeftir. D:\Kayıtlar gibi tam bir yol seçip Tamam ile kaydedin. Tırnaklı kopyalanan yollar da kabul edilir. Geçersiz veya kullanılamayan bir dizin seçilirse başka bir klasöre geçilmez; hata bildirilir. Planlı kaydın ayrıca seçilmiş özel dizini varsa o kullanılır. Başlamış kayıt/indirme mevcut hedefine devam eder; yeni işlemler yeni dizini kullanır. Podcastte Yeniden dene de güncel dizini kullanır. Eski dosyalar otomatik taşınmaz. Ayar boşsa Windows Belgeler klasörünün güncel konumu kullanılır.
+
+## 2.1: Ana pencereden kayıt ve bölüm geçişi
+
+Ana pencerede Radyo kaydını başlat / durdur düğmesi ve atanmış kısayol açıklaması bulunur. Oynatma dursa veya başka medya açılsa da aktif kayıt bu düğmeyle durdurulabilir. Önceki bölüm / Sonraki bölüm düğmeleri ana pencerede, Podcast ve Sesli Kitaplar sekmelerinde çalan içeriğin bölümünü değiştirir; başka kitaba atlamaz. Çevrimdışı podcastler indirilenler listesinin sırasını izler. Komut listesinde uygulama komutları ile favori/kitaplık öğeleri ayrı gruplardadır. Güncelleme seçenekleri yeni sürüm notlarını da gösterir.

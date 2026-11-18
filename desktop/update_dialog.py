@@ -6,6 +6,41 @@ import wx
 from .updates import find_asset, download_update, DownloadCancelled
 
 
+class UpdateOptionsDialog(wx.Dialog):
+    def __init__(self, parent, repository, version, choices, translate):
+        super().__init__(parent,title=translate('Application update'),size=(720,600),style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
+        self.translate = translate
+        outer=wx.BoxSizer(wx.VERTICAL)
+        outer.Add(wx.StaticText(self,label=translate('A new version is available: %s') % version),0,wx.ALL,12)
+        outer.Add(wx.StaticText(self,label=translate('Release notes')),0,wx.LEFT|wx.RIGHT,12)
+        self.notes=wx.TextCtrl(self,value=translate('Loading release notes...'),style=wx.TE_MULTILINE|wx.TE_READONLY)
+        self.notes.SetName(translate('Release notes'))
+        outer.Add(self.notes,1,wx.EXPAND|wx.ALL,12)
+        outer.Add(wx.StaticText(self,label=translate('Update action')),0,wx.LEFT|wx.RIGHT,12)
+        self.actions=wx.Choice(self,choices=choices)
+        self.actions.SetName(translate('Update action'));self.actions.SetSelection(0)
+        outer.Add(self.actions,0,wx.EXPAND|wx.ALL,12)
+        outer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL),0,wx.ALIGN_RIGHT|wx.ALL,12)
+        self.SetSizer(outer)
+        self.FindWindowById(wx.ID_CANCEL).SetLabel(translate('&Cancel'))
+        self.notes.SetFocus()
+        def work():
+            try:
+                from .updates import release_notes
+                notes=release_notes(repository,version) or translate('No release notes were provided.')
+            except Exception:
+                logging.exception('Could not load release notes')
+                notes=translate('Release notes could not be loaded. Download options remain available.')
+            wx.CallAfter(self.set_notes,notes)
+        threading.Thread(target=work,daemon=True,name='desktop-release-notes').start()
+
+    def set_notes(self, text):
+        if self: self.notes.ChangeValue(text)
+
+    def GetSelection(self):
+        return self.actions.GetSelection()
+
+
 class UpdateDownloadDialog(wx.Dialog):
     def __init__(self, parent, repository, version, portable, directory, translate):
         super().__init__(parent, title=translate('Downloading update'), size=(560, 230))

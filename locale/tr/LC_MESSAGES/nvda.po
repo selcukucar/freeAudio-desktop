@@ -7022,6 +7022,81 @@ msgstr "Sesli kitap"
 msgid "Local music"
 msgstr "Yerel müzik"
 
+msgid "Previous episode / chapter"
+msgstr "Önceki bölüm"
+
+msgid "Next episode / chapter"
+msgstr "Sonraki bölüm"
+
+msgid "Start radio recording"
+msgstr "Radyo kaydını başlat"
+
+msgid "Stop radio recording"
+msgstr "Radyo kaydını durdur"
+
+msgid "Recording continues independently of playback."
+msgstr "Oynatma durdurulsa da kayıt devam eder."
+
+msgid "Record the playing radio. Select a live station first."
+msgstr "Çalan radyoyu kaydeder. Önce bir canlı radyo açın."
+
+msgid "Recording shortcut: %s"
+msgstr "Kayıt kısayolu: %s"
+
+msgid "No global recording shortcut is assigned."
+msgstr "Genel kayıt kısayolu atanmamış."
+
+msgid "Select a podcast episode or audio book chapter first."
+msgstr "Önce bir podcast veya sesli kitap bölümü oynatın."
+
+msgid "An episode is already being opened."
+msgstr "Bir bölüm zaten açılıyor."
+
+msgid "Opening episode / chapter..."
+msgstr "Bölüm açılıyor..."
+
+msgid "This episode is not in the downloaded episode list."
+msgstr "Bu bölüm indirilen bölümler listesinde bulunmuyor."
+
+msgid "The episode list is unavailable. Select the podcast in the library."
+msgstr "Bölüm listesi kullanılamıyor. Podcasti kütüphaneden seçin."
+
+msgid "The current episode was not found in this podcast."
+msgstr "Çalan bölüm bu podcastin listesinde bulunamadı."
+
+msgid "The next chapter could not be opened."
+msgstr "Kitap bölümü açılamadı."
+
+msgid "The audio book is unavailable. Select it in the library."
+msgstr "Sesli kitap kullanılamıyor. Kitabı kütüphaneden seçin."
+
+msgid "Command group"
+msgstr "Komut grubu"
+
+msgid "Application commands"
+msgstr "Uygulama komutları"
+
+msgid "Favourite and library item shortcuts"
+msgstr "Favori ve kitaplık öğelerinin kısayolları"
+
+msgid "Release notes"
+msgstr "Bu sürümdeki yenilikler"
+
+msgid "Loading release notes..."
+msgstr "Sürüm notları yükleniyor..."
+
+msgid "No release notes were provided."
+msgstr "Bu sürüm için not eklenmemiş."
+
+msgid "Release notes could not be loaded. Download options remain available."
+msgstr "Sürüm notları yüklenemedi. İndirme seçeneklerini kullanabilirsiniz."
+
+msgid "Update action"
+msgstr "Güncelleme işlemi"
+
+msgid "Recording shortcut unavailable: %s"
+msgstr "Kayıt kısayolu kullanılamıyor: %s"
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

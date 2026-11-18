@@ -129,6 +129,43 @@ TR.update({
 
 TR.update({'Podcast': 'Podcast', 'Radio': 'Radyo', 'Audio book': 'Sesli kitap', 'Local music': 'Yerel müzik'})
 
+TR.update({'Previous episode / chapter': 'Önceki bölüm',
+ 'Next episode / chapter': 'Sonraki bölüm',
+ 'Start radio recording': 'Radyo kaydını başlat',
+ 'Stop radio recording': 'Radyo kaydını durdur',
+ 'Recording continues independently of playback.': 'Oynatma durdurulsa da kayıt devam eder.',
+ 'Record the playing radio. Select a live station first.': 'Çalan radyoyu kaydeder. Önce bir canlı '
+                                                           'radyo açın.',
+ 'Recording shortcut: %s': 'Kayıt kısayolu: %s',
+ 'No global recording shortcut is assigned.': 'Genel kayıt kısayolu atanmamış.',
+ 'Select a podcast episode or audio book chapter first.': 'Önce bir podcast veya sesli kitap '
+                                                          'bölümü oynatın.',
+ 'An episode is already being opened.': 'Bir bölüm zaten açılıyor.',
+ 'Opening episode / chapter...': 'Bölüm açılıyor...',
+ 'This episode is not in the downloaded episode list.': 'Bu bölüm indirilen bölümler listesinde '
+                                                        'bulunmuyor.',
+ 'The episode list is unavailable. Select the podcast in the library.': 'Bölüm listesi '
+                                                                        'kullanılamıyor. Podcasti '
+                                                                        'kütüphaneden seçin.',
+ 'The current episode was not found in this podcast.': 'Çalan bölüm bu podcastin listesinde '
+                                                       'bulunamadı.',
+ 'The next chapter could not be opened.': 'Kitap bölümü açılamadı.',
+ 'The audio book is unavailable. Select it in the library.': 'Sesli kitap kullanılamıyor. Kitabı '
+                                                             'kütüphaneden seçin.',
+ 'Command group': 'Komut grubu',
+ 'Application commands': 'Uygulama komutları',
+ 'Favourite and library item shortcuts': 'Favori ve kitaplık öğelerinin kısayolları',
+ 'Release notes': 'Bu sürümdeki yenilikler',
+ 'Loading release notes...': 'Sürüm notları yükleniyor...',
+ 'No release notes were provided.': 'Bu sürüm için not eklenmemiş.',
+ 'Release notes could not be loaded. Download options remain available.': 'Sürüm notları '
+                                                                          'yüklenemedi. İndirme '
+                                                                          'seçeneklerini '
+                                                                          'kullanabilirsiniz.',
+ 'Update action': 'Güncelleme işlemi'})
+
+TR.update({'Recording shortcut unavailable: %s': 'Kayıt kısayolu kullanılamıyor: %s'})
+
 
 def prepare():
     source = ROOT / 'locale/tr/LC_MESSAGES/nvda.po'
