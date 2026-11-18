@@ -1,4 +1,4 @@
-# freeAudio Desktop 2.1.0
+# freeAudio Desktop 2.1.1
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.

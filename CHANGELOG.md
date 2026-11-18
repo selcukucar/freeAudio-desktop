@@ -1,3 +1,10 @@
+# 2.1.1
+
+- Ana pencerede görünür radyo kaydı başlat/durdur ve önceki/sonraki bölüm düğmeleri bulunur. Kayıt düğmesi atanmış ve kullanılabilir kısayolu da belirtir.
+- Sesli kitap bölümünü düğmeyle değiştirince kütüphanenin otomatik ilerleme durumu da yeni bölümle eşleşir; eski bölümden devam etme riski giderildi.
+- Podcast ve sesli kitap sekmelerinde bölüm düğmeleri, komut listesinde uygulama/favori-kitaplık grupları ve güncelleme penceresinde okunabilir sürüm notları bulunur.
+- Bölüm geçişi, kayıt odağı, kısayol durumu ve sürüm notlarının bağlantı hatasında davranışı test edildi. 2.1 serisindeki bütün yenilikleri içerir.
+
 # 2.1.0
 
 - Ana pencereye Radyo kaydını başlat / durdur düğmesi eklendi. Atanmış kayıt kısayolu görünür; kayıt oynatmadan bağımsız olarak durdurulabilir. Düğme odağı işlem boyunca korunur.

@@ -73,6 +73,16 @@ class NavigationTests(unittest.TestCase):
         DesktopFrame.navigation_done(frame,token,{'url':'new'},commit,None)
         commit.assert_not_called();frame.plugin._play_station.assert_not_called()
 
+    def test_book_navigation_syncs_library_auto_advance_after_committing_progress(self):
+        gate=PlaybackGate();token=gate.request()
+        frame=types.SimpleNamespace(_closing=False,_playback_gate=gate,plugin=Mock(),notifications=Mock(),translate=lambda s:s)
+        order=[];commit=lambda:order.append('progress')
+        frame.plugin._play_station.side_effect=lambda target:order.append('play')
+        frame.plugin._nav_sync_dialog_audiobook.side_effect=lambda key:order.append('sync')
+        DesktopFrame.navigation_done(frame,token,{'media_kind':'audiobook','getem_detail_url':'book-1'},commit,None)
+        self.assertEqual(order,['progress','play','sync'])
+        frame.plugin._nav_sync_dialog_audiobook.assert_called_once_with('book-1')
+
     def test_library_commands_are_separate_without_removing_saved_shortcuts(self):
         shortcuts=Shortcuts.__new__(Shortcuts)
         shortcuts.commands={'toggleRecord':('Record',Mock()),'playFavoriteStation_abc':('Station playback shortcut',Mock()),

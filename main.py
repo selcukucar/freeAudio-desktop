@@ -215,6 +215,8 @@ class DesktopFrame(wx.Frame):
         try:
             if commit: commit()
             self.plugin._play_station(target)
+            if target.get('media_kind') == 'audiobook':
+                self.plugin._nav_sync_dialog_audiobook(target.get('getem_detail_url'))
         except Exception as exc:
             self._playback_gate.cancel()
             self.notifications.message(self.translate('Operation failed: %s') % str(exc))
