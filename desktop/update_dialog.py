@@ -22,7 +22,7 @@ class UpdateOptionsDialog(wx.Dialog):
         outer.Add(self.actions,0,wx.EXPAND|wx.ALL,12)
         outer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL),0,wx.ALIGN_RIGHT|wx.ALL,12)
         self.SetSizer(outer)
-        self.FindWindowById(wx.ID_CANCEL).SetLabel(translate('&Cancel'))
+        self.FindWindow(wx.ID_CANCEL).SetLabel(translate('&Cancel'))
         self.notes.SetFocus()
         def work():
             try:

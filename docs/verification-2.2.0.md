@@ -10,4 +10,4 @@ The sandbox denied global RegisterHotKey with Windows error 5. The app now repor
 
 Current public LibriVox and Gutenberg checks returned search results, chapter resolution and 4096 audio bytes. No personal GETEM account was used. Service availability may change.
 
-Packaging, upgrade smoke tests and disposable-runner installer checks are recorded after the build; this source report describes the completed pre-release tests.
+Local packages passed checksum/ZIP verification, Turkish/English smoke checks and upgrade from a 2.1.1 fixture with custom shortcuts, listening positions and an old download list. The previous profile backup retained the original data. GitHub Actions run 45886172133 passed all regression, packaging, integrity and both-scope installer/upgrade checks and published v2.2.0 from commit a72247364bf3a68220c1d4c7627e6cab83915c6d. Published asset digests, release notes and updater behavior were checked afterward.

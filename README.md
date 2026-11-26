@@ -1,7 +1,9 @@
-# freeAudio Desktop 2.2.0
+# freeAudio Desktop 2.2.1
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
+
+2.2.1: Standart iletişim kutularının Tamam, İptal, Evet/Hayır ve Kapat gibi kontrol kitaplığı etiketleri de seçilen arayüz dilini kullanır. 2.2 sürümündeki bütün düğmeler ve özellikler korunur.
 
 ## 2.2: Dinlemeye devam et, düzenlenebilir pencere kısayolları ve uyku zamanlayıcısı
 

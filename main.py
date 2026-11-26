@@ -890,6 +890,9 @@ def main():
     parser.add_argument('--smoke-test', action='store_true')
     args = parser.parse_args()
     app = wx.App(False)
+    from desktop.standard_translation import LocalizedMessageDialog, localized_message_box
+    wx.MessageDialog = LocalizedMessageDialog
+    wx.MessageBox = localized_message_box
     directory = args.data_dir or data_directory(APP_DIR, args.portable)
     directory.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(handlers=[RotatingFileHandler(directory / 'desktop.log',
@@ -1002,6 +1005,11 @@ def main():
                     raise RuntimeError('Unconfigured update controls must be hidden')
                 resume_label = panel._resume.GetLabel()
                 braille_label = panel._braille_messages.GetLabel()
+                standard_labels = [settings_dialog.FindWindow(button_id).GetLabel().replace('&','')
+                                   for button_id in (wx.ID_OK,wx.ID_CANCEL)]
+                expected_labels = ['Tamam','İptal'] if language == 'tr' else ['OK','Cancel']
+                if standard_labels != expected_labels:
+                    raise RuntimeError('Standard dialog button translation regression: '+str(standard_labels))
                 settings_dialog.Destroy()
                 import wave
                 import time
@@ -1037,6 +1045,7 @@ def main():
                     'main_volume': frame._volume_control.GetValue(),
                     'resume_label': resume_label,
                     'braille_label': braille_label,
+                    'standard_dialog_labels': standard_labels,
                 }, ensure_ascii=False, indent=2), encoding='utf-8')
                 frame.Close()
             def smoke():

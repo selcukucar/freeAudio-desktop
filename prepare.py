@@ -238,6 +238,11 @@ TR.update({
 
 
 def prepare():
+    import shutil
+    import wx
+    standard = Path(wx.__file__).parent / 'locale/tr/LC_MESSAGES/wxstd.mo'
+    target = ROOT / 'locale/tr/LC_MESSAGES/wxstd.mo'
+    shutil.copyfile(standard,target)
     source = ROOT / 'locale/tr/LC_MESSAGES/nvda.po'
     catalog = polib.pofile(str(source))
     for original, translated in TR.items():

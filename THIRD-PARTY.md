@@ -3,7 +3,7 @@
 - freeAudio by Surveyor123 and contributors, with acknowledged work by Gary Mp: https://github.com/Surveyor123/freeAudio ; commit f1ade61be7e5badd43dd9b58cba80ae26959148b. Original GPL version 2 text is in LICENSE. Original source headers and notices are retained in vendor/freeAudio.
 - Python embedded runtimes already bundled upstream: licenses in vendor/freeAudio/python/x64/LICENSE.txt and python/x86/LICENSE.txt.
 - BASS and its plug-ins are bundled upstream in vendor/freeAudio/bass. They have their own terms: https://www.un4seen.com/bass.html . BASS is not covered by the freeAudio GPL text. Check the applicable terms before commercial distribution; this preview grants no additional BASS rights.
-- wxPython: https://wxpython.org/pages/license/index.html ; wxWindows Library Licence.
+- wxPython and its Turkish wxstd stock-control translation catalog: https://wxpython.org/pages/license/index.html ; wxWindows Library Licence. The catalog is copied unchanged from the installed wxPython distribution during preparation.
 - accessible-output2 0.17: https://github.com/accessibleapps/accessible_output2 ; MIT. Bundled screen-reader controller DLLs retain their respective third-party terms, including NVDA controller LGPL terms.
 - configobj: https://github.com/DiffSK/configobj ; BSD.
 - packaging: https://github.com/pypa/packaging ; Apache-2.0 / BSD-2-Clause.

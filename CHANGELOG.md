@@ -1,3 +1,16 @@
+# 2.2.1
+
+- Ana pencereye Dinlemeye devam et eklendi: yarım kalan podcastler ve sesli kitaplar konumlarıyla listelenir; mevcut çevrimdışı podcast dosyası kullanılır.
+- İndirmelere podcast grubu, dinlenmiş/dinlenmemiş süzgeçleri, durum işaretleme, podcast adını düzenleme ve disk kullanım bilgisi eklendi. Önizleme ve abonelikten indirmeler podcast adını korur; adı bilinmeyen eski dosyalar elle gruplandırılabilir.
+- Ana pencere düğmelerine değiştirilebilir Ctrl+Shift kısayolları eklendi; kullanılabilir atamalar düğme adlarında görünür. Önceki/sonraki bölüm, kütüphane, indirmeler, geçmiş, ayarlar, komutlar, bildirimler, dil, güncelleme, yedek, yardım, hakkında ve çıkışa doğrudan erişilebilir. Kısayol grubu, yeniden deneme ve ayrıntılı Windows hata kodları sunulur.
+- Hızlı uyku zamanlayıcısında 15/30/60 dakika, 1–480 dakika özel süre ve podcast/kitap bölümünün sonunda durdurma bulunur. Kayıtlar ve indirmeler bağımsız sürer. Eski takvimli zamanlayıcılar korunur.
+- Bilgisayarı kapatma isteğe bağlıdır ve varsayılan değildir. En az 60 saniyelik uyarı, geri sayım ve iptal düğmesi vardır. Aktif kayıt/indirme, durdurma hatası veya kapatma hazırlığı sırasında yeniden oynatma kapatmayı iptal eder. Diğer uygulamalar zorla kapatılmaz. Testlerde gerçek bilgisayarı kapatma çalıştırılmaz.
+- Bozuk indirme/geçmiş verisi onarım öncesi korunur; gelecekteki şema üzerine yazılmaz. Metadata kaydedilemezse dosya silinmez. Kilitli dosyaların listeden kaybolması, geçmiş temizledikten sonra ilk öğenin atlanması ve eski uyku zamanlayıcısının yeni yayına/ses düzeyine müdahalesi düzeltildi.
+- Türkçe ve İngilizce yardım ve erişilebilir kontrol etiketleri güncellendi. Paketler imzasızdır.
+
+- Türkçe arayüzde İngilizce kalan standart OK/Cancel düğmeleri düzeltildi. Standart kontrol kitaplığının Türkçe çevirisi pakete eklendi; ayarlar, metin girişi ve seçim kutuları uygulama dilindeki Tamam/İptal etiketlerini kullanır. İngilizce arayüz İngilizce kalır.
+- Güncelleme penceresinin İptal etiketi yalnız kendi düğmesine uygulanır; aynı kimliği taşıyan başka bir pencerenin düğmesi etkilenmez.
+
 # 2.2.0
 
 - Ana pencereye Dinlemeye devam et eklendi: yarım kalan podcastler ve sesli kitaplar konumlarıyla listelenir; mevcut çevrimdışı podcast dosyası kullanılır.

@@ -247,6 +247,8 @@ def invoke(command, gesture):
 
 
 def install(root, settings, frame, language):
+    from .standard_translation import configure_standard_translation
+    configure_standard_translation(root,language)
     translation = gettext.translation('nvda', str(Path(root) / 'locale'),
                                       languages=[language], fallback=True)
     def initTranslation():
