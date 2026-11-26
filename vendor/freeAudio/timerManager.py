@@ -213,10 +213,17 @@ class TimerManager:
 		if self._player.is_playing():
 			threading.Thread(target=self._fade_and_stop, daemon=True).start()
 		else:
-			self._player.stop()
+			self._stop_player(self._player.get_current_station())
 			# Use _notify so the message is suppressed when notifications are muted.
 			# Translators: Spoken when a sleep timer fires and stops playback instantly (nothing was playing to fade out).
 			wx.CallAfter(_notify, _("Sleep timer: radio stopped"))
+
+	def _stop_player(self, expected_station, generation=None):
+		callback = getattr(self, "_desktop_stop", None)
+		if callback:
+			wx.CallAfter(callback, expected_station, generation)
+		else:
+			self._player.stop()
 
 	def _fade_and_stop(self):
 		"""Gradually reduce volume to 0 over 60 seconds, then stop."""
@@ -226,22 +233,32 @@ class TimerManager:
 		_STEP_INTERVAL  = _FADE_DURATION / _FADE_STEPS
 
 		original_volume = self._player.get_volume()
+		expected_volume = original_volume
+		station = self._player.get_current_station()
+		generation = getattr(self, "_desktop_generation", lambda: None)()
 		# Use _notify so both fade-out messages are suppressed when notifications are muted.
 		# Translators: Spoken when a sleep timer fires while something is playing, before the 60-second volume fade-out begins.
 		wx.CallAfter(_notify, _("Sleep timer: fading out…"))
 
 		for step in range(_FADE_STEPS):
 			for tick in range(int(_STEP_INTERVAL * 10)):
-				time.sleep(0.1)
+				if self._stop_event.wait(0.1):
+					return
+				# Changing media or volume cancels this fade. Never overwrite
+				# a new station's audio profile or a user's volume adjustment.
+				if (self._player.get_current_station() != station or self._player.get_volume() != expected_volume
+						or getattr(self, "_desktop_generation", lambda: None)() != generation):
+					return
 				if not self._player.is_playing():
 					self._player.set_volume(original_volume)
 					return
 
 			new_vol = max(0, int(original_volume * (1 - (step + 1) / _FADE_STEPS)))
 			self._player.set_volume(new_vol)
+			expected_volume = new_vol
 
-		self._player.stop()
 		self._player.set_volume(original_volume)
+		self._stop_player(station, generation)
 		# Use _notify so the stop message is suppressed when notifications are muted.
 		# Translators: Spoken at the end of the fade-out, once volume has reached 0 and playback actually stops.
 		wx.CallAfter(_notify, _("Sleep timer: radio stopped"))

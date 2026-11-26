@@ -119,7 +119,7 @@ class NativeMainViewTests(unittest.TestCase):
                     playback=[w for w in view.stop.GetParent().GetChildren() if isinstance(w,(wx.Button,wx.SpinCtrl))]
                     self.assertEqual(playback,[view.stop,view.pause,view.previous,view.following,view.record,view.volume_down,view.volume,view.volume_up])
                     tools=[w for w in view.browser.GetParent().GetChildren() if isinstance(w,wx.Button)]
-                    self.assertEqual(tools,[view.browser,view.downloads,view.listening,view.settings,view.commands,view.messages,view.language,view.updates,view.backup,view.help,view.about,view.exit])
+                    self.assertEqual(tools,[view.browser,view.continue_listening,view.sleep,view.downloads,view.listening,view.settings,view.commands,view.messages,view.language,view.updates,view.backup,view.help,view.about,view.exit])
                     self.assertEqual(view.volume.GetName(),translate('Volume (%)'))
                     self.assertIsInstance(view.volume.GetPrevSibling(),wx.StaticText)
                     self.assertEqual(view.volume.GetPrevSibling().GetLabel(),translate('Volume (%)'))
@@ -226,3 +226,35 @@ class NativeMainViewTests(unittest.TestCase):
             frame.clear_update_notice()
             self.assertFalse(frame._update_status.IsShown())
         finally:self.cleanup(frame,directory)
+
+    def test_sleep_and_continue_windows_have_native_labels_safe_defaults_and_keyboard_access(self):
+        from desktop.listening_dialogs import SleepDialog, ContinueDialog
+        frame,directory,translate=self.build_frame('tr')
+        sleep=continuation=None
+        try:
+            frame.plugin._player.get_current_station.return_value={}
+            sleep=SleepDialog(frame)
+            self.assertEqual(sleep.action.GetSelection(),0)
+            self.assertEqual(sleep.minutes.GetPrevSibling().GetLabel(),'Dakika (1–480)')
+            self.assertEqual(sleep.status.GetPrevSibling().GetLabel(),'Zamanlayıcı durumu')
+            self.assertFalse(sleep.cancel.IsEnabled())
+            sleep.arm(None)
+            self.assertEqual(frame.sleep_timer.action,'stop')
+            self.assertTrue(sleep.cancel.IsEnabled())
+            frame.cancel_sleep();sleep.refresh()
+            self.assertFalse(sleep.cancel.IsEnabled())
+            sleep.mode.SetSelection(1);sleep.arm(None)
+            self.assertIsNone(frame.sleep_timer.mode)
+            with patch('desktop.listening_dialogs.continuation_items',return_value=[]):
+                continuation=ContinueDialog(frame)
+            self.assertEqual(continuation.list.GetPrevSibling().GetLabel(),'Yarım kalan podcastler ve sesli kitaplar')
+            self.assertFalse(continuation.play.IsEnabled())
+            frame.refresh_local_shortcut_labels()
+            self.assertIn('Ctrl+Shift+T',frame._main_view.sleep.GetLabel())
+            before=frame._main_view.sleep.GetLabel()
+            frame.sleep_tick();frame.refresh_local_shortcut_labels()
+            self.assertEqual(frame._main_view.sleep.GetLabel(),before)
+        finally:
+            if sleep:sleep.Close()
+            if continuation:continuation.Close()
+            self.cleanup(frame,directory)

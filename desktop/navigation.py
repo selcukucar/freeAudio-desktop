@@ -40,6 +40,7 @@ def podcast_target(plugin, station, direction, downloads):
     target = episodes[adjacent_index(index,len(episodes),direction,'Already at first episode','Already at last episode')]
     result = target.to_dict()
     result['podcast_feed_url'] = feed.url
+    result['podcast_feed_title'] = feed.title
     if feed.author: result['podcast_author'] = feed.author
     if feed.audio_profile: result['station_audio'] = feed.audio_profile
     result['name'] = feed.title + ' — ' + target.title if target.title != feed.title else feed.title

@@ -14,7 +14,8 @@ def playback_station(item, manager):
     if item['state'] != 'completed' or not path.is_file():
         raise ValueError('The downloaded file is not available')
     return {'url': str(path), 'name': item['title'], 'tags': 'podcast', 'media_kind': 'podcast',
-            'podcast_resume_key': item['url']}
+            'podcast_resume_key': item['url'], 'podcast_feed_url': item.get('feed_url',''),
+            'podcast_feed_title': item.get('feed_title','')}
 
 
 class DownloadsDialog(wx.Dialog):
@@ -25,10 +26,16 @@ class DownloadsDialog(wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         outer = wx.BoxSizer(wx.VERTICAL)
         outer.Add(wx.StaticText(self, label=_('Show')), 0, wx.LEFT | wx.TOP, 12)
-        self.filter = wx.Choice(self, choices=[_('All downloads'), _('Downloaded episodes')])
+        self.filter = wx.Choice(self, choices=[_('All downloads'), _('Downloaded episodes'), _('Unlistened episodes'), _('Listened episodes')])
         self.filter.SetName(_('Show'))
         self.filter.SetSelection(0)
         outer.Add(self.filter, 0, wx.EXPAND | wx.ALL, 12)
+        outer.Add(wx.StaticText(self, label=_('Podcast group')), 0, wx.LEFT, 12)
+        self.group = wx.Choice(self, choices=[_('All podcasts')])
+        self.group.SetName(_('Podcast group')); self.group.SetSelection(0)
+        outer.Add(self.group, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        self.usage = wx.StaticText(self, label='')
+        outer.Add(self.usage, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
         outer.Add(wx.StaticText(self, label=_('Podcast downloads')), 0, wx.LEFT, 12)
         self.list = wx.ListBox(self)
         self.list.SetName(_('Podcast downloads'))
@@ -44,7 +51,7 @@ class DownloadsDialog(wx.Dialog):
         actions = [('&Play downloaded episode', 'play'), ('&Read progress', 'read'),
                    ('&Cancel download', 'cancel'), ('&Retry download', 'retry'),
                    ('Open download &folder', 'folder'), ('Remove from &list', 'remove'),
-                   ('&Delete downloaded file', 'delete')]
+                   ('&Delete downloaded file', 'delete'), ('Mark as &listened', 'listened'), ('Edit &podcast name', 'group')]
         row = wx.WrapSizer(wx.HORIZONTAL, flags=wx.REMOVE_LEADING_SPACES)
         self.buttons = {}
         for label, name in actions:
@@ -62,6 +69,8 @@ class DownloadsDialog(wx.Dialog):
         self.list.Bind(wx.EVT_LISTBOX, lambda event: self.refresh_details())
         self.list.Bind(wx.EVT_LISTBOX_DCLICK, lambda event: self.action('play'))
         self.filter.Bind(wx.EVT_CHOICE, lambda event: self.refresh())
+        self.group.Bind(wx.EVT_CHOICE, lambda event: self.refresh())
+        self._usage_tick = 0
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
         self.SetEscapeId(wx.ID_CLOSE)
         self.Bind(wx.EVT_CLOSE, self.on_close)
@@ -87,9 +96,24 @@ class DownloadsDialog(wx.Dialog):
         selected = self.selected()
         index = self.list.GetSelection()
         rows = self.manager.snapshot()
+        old_group = self.group.GetStringSelection()
+        groups = [self._('All podcasts')] + sorted({x.get('feed_title') or self._('Unknown podcast') for x in rows}, key=str.casefold)
+        if list(self.group.GetItems()) != groups:
+            self.group.Set(groups)
+            self.group.SetSelection(groups.index(old_group) if old_group in groups else 0)
+        selected_group = self.group.GetStringSelection()
+        if self.group.GetSelection() > 0:
+            rows = [x for x in rows if (x.get('feed_title') or self._('Unknown podcast')) == selected_group]
         if self.filter.GetSelection() == 1:
             rows = [x for x in rows if x['state'] == 'completed']
-        labels = [x['title'] + ' — ' + self._(STATES.get(x['state'], 'Failed')) for x in rows]
+        elif self.filter.GetSelection() in (2,3):
+            listened = self.filter.GetSelection() == 3
+            rows = [x for x in rows if x['state'] == 'completed' and bool(x.get('listened')) == listened]
+        labels = [(x.get('feed_title') or self._('Unknown podcast')) + ' — ' + x['title'] + ' — ' + self._(STATES.get(x['state'], 'Failed')) + (' — ' + self._('Listened') if x.get('listened') else '') for x in rows]
+        self._usage_tick += 1
+        if self._usage_tick == 1 or self._usage_tick % 10 == 0:
+            size, count = self.manager.disk_usage()
+            self.usage.SetLabel(self._('Downloaded files: %d; disk usage: %s MB') % (count, f'{size/1048576:.1f}'))
         if [x['id'] for x in rows] != [x['id'] for x in self.rows]:
             self.list.Set(labels)
             if rows:
@@ -110,8 +134,10 @@ class DownloadsDialog(wx.Dialog):
         for name, enable in {'play': available, 'read': item is not None, 'cancel': active,
                              'retry': item is not None and not active and not available,
                              'remove': item is not None and not active, 'delete': available,
-                             'folder': item is not None and self.manager.resolve_path(item).parent.is_dir()}.items():
+                             'folder': item is not None and self.manager.resolve_path(item).parent.is_dir(),
+                             'listened': complete, 'group': item is not None}.items():
             self.buttons[name].Enable(enable)
+        self.buttons['listened'].SetLabel(self._('Mark as &unlistened' if item and item.get('listened') else 'Mark as &listened'))
         text = ''
         percent = 0
         if item:
@@ -120,7 +146,7 @@ class DownloadsDialog(wx.Dialog):
             if complete:
                 percent = 100
             amount = self._('%s of %s MB') % (f'{received/1048576:.1f}', f'{total/1048576:.1f}') if total else self._('%s MB downloaded; total size unknown') % f'{received/1048576:.1f}'
-            text = '\n'.join((item['title'], self._(STATES.get(item['state'], 'Failed')), amount,
+            text = '\n'.join(((item.get('feed_title') or self._('Unknown podcast')), item['title'], self._(STATES.get(item['state'], 'Failed')), amount,
                               str(self.manager.resolve_path(item)), item.get('error', ''))).strip()
             if complete and not available:
                 text += '\n' + self._('The downloaded file is not available')
@@ -145,6 +171,12 @@ class DownloadsDialog(wx.Dialog):
             elif action == 'retry':
                 self.manager.retry(item['id'])
                 self.frame.notifications.message(_('Download queued'))
+            elif action == 'listened':
+                self.manager.set_listened(item['id'], not item.get('listened'))
+            elif action == 'group':
+                with wx.TextEntryDialog(self, _('Podcast name for this episode:'), _('Podcast group'), item.get('feed_title','')) as dialog:
+                    if dialog.ShowModal() == wx.ID_OK:
+                        self.manager.set_group(item['id'], dialog.GetValue())
             elif action == 'folder':
                 os.startfile(str(self.manager.resolve_path(item).parent))
             elif action == 'remove':

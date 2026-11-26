@@ -1,7 +1,15 @@
-# freeAudio Desktop 2.1.1
+# freeAudio Desktop 2.2.0
 
 Türkçe ve İngilizce arayüzlü, Windows 10/11 x64 için bağımsız freeAudio uyarlaması.
 NVDA'nın veya ayrı bir Python kurulumunun bulunması gerekmez.
+
+## 2.2: Dinlemeye devam et, düzenlenebilir pencere kısayolları ve uyku zamanlayıcısı
+
+- **Dinlemeye devam et** yarım kalan podcastleri ve kitapları kayıtlı konumlarından sürdürür. İndirilmiş podcastler mevcutsa çevrimdışı dosyayı kullanır.
+- İndirmeler podcast adına ve dinlenmiş/dinlenmemiş durumuna göre süzülebilir. Podcast adını düzenleyebilir, dinlendi işaretini değiştirebilir ve listedeki dosyaların disk kullanımını görebilirsiniz.
+- **Uyku zamanlayıcısı** 15/30/60 dakika, özel süre veya çalan podcast/kitap bölümünün sonunda durdurma sunar. İsteğe bağlı bilgisayarı kapatma seçeneğinde 60 saniyelik uyarı ve iptal düğmesi vardır. Aktif kayıt/indirme varsa kapatma iptal edilir; diğer uygulamalar zorla kapatılmaz. Hızlı zamanlayıcı yalnız mevcut oturumda geçerlidir.
+- Ana pencere düğmelerinde **Ctrl+Shift** kısayolları görünür. **Komutlar ve kısayollar → Uygulama penceresi kısayolları** grubundan değiştirilebilir, kapatılabilir veya varsayılana döndürülebilir. F5/F6/F8 ve mevcut genel kısayollar korunur.
+- Bozuk indirme/geçmiş listeleri onarımdan önce yedeklenir. Daha yeni şemalar salt okunur tutulur. Eski takvimli uyku zamanlayıcısının yeni medyaya ve kullanıcının ses değişikliğine müdahalesi engellenmiştir.
 
 ## 2.0: İndirmeler ve dinleme geçmişi
 

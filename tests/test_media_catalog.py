@@ -117,6 +117,50 @@ class DownloadQueueTests(unittest.TestCase):
                 manager.enqueue('Episode','https://example.org/audio',self.root/'episode.mp3')
         self.assertEqual(manager.snapshot(), [])
 
+    def test_groups_listened_state_and_disk_usage_survive_restart_without_moving_files(self):
+        target=self.root/'episode.mp3';target.write_bytes(b'audio')
+        manager=self.manager(lambda *args,**kwargs:self.fail('existing file downloaded again'))
+        item=manager.enqueue('Episode','https://example.org/audio',target,'Podcast A','https://example.org/feed')
+        manager.set_group(item['id'],'Podcast B');manager.mark_finished(item['url'])
+        self.assertEqual(manager.disk_usage(),(5,1))
+        manager.close()
+        for worker in manager.workers:worker.join(2)
+        reopened=self.manager(lambda *args,**kwargs:self.fail('automatic retry'))
+        saved=reopened.snapshot()[0]
+        self.assertEqual(saved['feed_title'],'Podcast B');self.assertTrue(saved['listened'])
+        self.assertEqual(saved['feed_url'],'https://example.org/feed')
+        target.unlink()
+        self.assertEqual(reopened.disk_usage(),(0,0))
+
+    def test_save_failure_cannot_delete_audio_or_silently_change_metadata(self):
+        target=self.root/'episode.mp3';target.write_bytes(b'audio')
+        manager=self.manager(lambda *args,**kwargs:None)
+        item=manager.enqueue('Episode','https://example.org/audio',target)
+        with patch('desktop.downloads.write_items',side_effect=OSError('disk full')):
+            for action in (lambda:manager.remove(item['id'],True),
+                           lambda:manager.set_group(item['id'],'Changed'),
+                           lambda:manager.set_listened(item['id'],True),
+                           lambda:manager.enqueue('Episode',item['url'],target,'Changed','feed')):
+                with self.assertRaises(OSError):action()
+                self.assertEqual(manager.snapshot(),[item])
+                self.assertEqual(target.read_bytes(),b'audio')
+
+    def test_locked_file_does_not_disappear_from_download_catalogue(self):
+        target=self.root/'episode.mp3';target.write_bytes(b'audio')
+        manager=self.manager(lambda *args,**kwargs:None)
+        item=manager.enqueue('Episode','https://example.org/audio',target)
+        with patch('pathlib.Path.unlink',side_effect=PermissionError('file in use')):
+            with self.assertRaises(PermissionError):manager.remove(item['id'],True)
+        self.assertEqual(manager.snapshot(),[item])
+        self.assertEqual(json.loads(manager.path.read_text())['items'],[item])
+
+    def test_damaged_download_row_does_not_break_all_downloads(self):
+        good=dict(id='test',title='Episode',url='https://example.org/audio',path='episode.mp3',state='completed')
+        write_items(self.root/'freeAudio_downloads.json',[good,dict(good,id='bad',received='wrong'),dict(good)])
+        manager=self.manager(lambda *args,**kwargs:None)
+        self.assertEqual(len(manager.snapshot()),1)
+        self.assertTrue(Path(manager.recovery).is_file())
+
 
 class HistoryTests(unittest.TestCase):
     def test_deduplication_reordering_limit_and_persistence(self):

@@ -38,6 +38,11 @@ class DesktopFrame(wx.Frame):
         self.notifications = notifications
         self._closing = False
         self._downloads_window = self._listening_window = None
+        self._continue_window = self._sleep_window = None
+        from desktop.sleep_timer import SleepTimer
+        self.sleep_timer = SleepTimer()
+        self._power_pending_since = None
+        self._power_launching = False
         from desktop.downloads import DownloadManager
         from desktop.catalog import ListeningHistory
         def download_episode(*args, **kwargs):
@@ -50,6 +55,16 @@ class DesktopFrame(wx.Frame):
                                         lambda item: wx.CallAfter(self.download_finished, item), download_destination)
         self.listening_history = ListeningHistory(settings.directory)
         self.plugin._desktop_downloads = self.downloads
+        try:
+            for item in self.downloads.snapshot():
+                if (item['state'] == 'completed' and item.get('listened_override') is None
+                        and plugin._player.get_podcast_position(item['url']) == -1):
+                    self.downloads.mark_finished(item['url'])
+        except Exception:
+            logging.exception('Could not migrate completed episode status')
+        for catalog in (self.downloads,self.listening_history):
+            if catalog.recovery:
+                wx.CallAfter(notifications.message, translate('A library list could not be changed safely. Existing data was kept: %s' if catalog.read_only else 'A library list needed recovery. The original data was kept at: %s') % catalog.recovery)
         self._download_shutdown_requested = False
         self._exit_recordings_confirmed = False
         self._history_error_reported = False
@@ -65,7 +80,25 @@ class DesktopFrame(wx.Frame):
         _ = translate
         self.SetTitle('freeAudio Desktop ' + VERSION)
         self.SetSize((700, 440))
-        self.shortcuts = Shortcuts(self, plugin, settings, notifications.message)
+        local_actions = {
+            'windowPrevious': (_('Previous episode / chapter'), 'control+shift+leftArrow', lambda: self.navigate_media(-1)),
+            'windowNext': (_('Next episode / chapter'), 'control+shift+rightArrow', lambda: self.navigate_media(1)),
+            'windowLibrary': (_('Open library'), 'control+shift+l', lambda: plugin._open_dialog()),
+            'windowContinue': (_('Continue listening'), 'control+shift+c', self.show_continue),
+            'windowSleep': (_('Sleep timer'), 'control+shift+t', self.show_sleep),
+            'windowDownloads': (_('Downloads and offline podcasts'), 'control+shift+d', self.show_downloads),
+            'windowHistory': (_('Listening history'), 'control+shift+h', self.show_listening_history),
+            'windowSettings': (_('Settings'), 'control+shift+s', self._popupSettingsDialog),
+            'windowCommands': (_('Commands and shortcuts'), 'control+shift+k', lambda: self.shortcuts.show(self, _)),
+            'windowMessages': (_('Notification history'), 'control+shift+n', lambda: self.history(None)),
+            'windowLanguage': (_('Language / Dil'), 'control+shift+g', lambda: self.change_language(None)),
+            'windowUpdates': (_('Check for updates'), 'control+shift+u', self.open_update_options),
+            'windowBackup': (_('Profile backup and restore'), 'control+shift+b', lambda: self.backup_profile(None)),
+            'windowHelp': (_('Help'), 'control+shift+f1', lambda: self.help(None)),
+            'windowAbout': (_('About freeAudio Desktop'), 'control+shift+f2', lambda: self.about(None)),
+            'windowExit': (_('Exit'), 'control+shift+q', self.Close),
+        }
+        self.shortcuts = Shortcuts(self, plugin, settings, notifications.message, local_actions)
         from desktop.main_view import build_main_view
         view = build_main_view(self, notifications, _, plugin._player.get_volume())
         self._main_view = view
@@ -97,6 +130,8 @@ class DesktopFrame(wx.Frame):
         updates.Bind(wx.EVT_BUTTON, lambda event: self.open_update_options())
         help_button.Bind(wx.EVT_BUTTON, self.help)
         backup_button.Bind(wx.EVT_BUTTON, self.backup_profile)
+        view.continue_listening.Bind(wx.EVT_BUTTON, self.show_continue)
+        view.sleep.Bind(wx.EVT_BUTTON, self.show_sleep)
         view.downloads.Bind(wx.EVT_BUTTON, self.show_downloads)
         view.listening.Bind(wx.EVT_BUTTON, self.show_listening_history)
         view.about.Bind(wx.EVT_BUTTON, self.about)
@@ -131,9 +166,12 @@ class DesktopFrame(wx.Frame):
     def refresh_playback_status(self, event=None):
         if self._closing:
             return
+        if hasattr(self, "sleep_timer"):
+            self.sleep_tick()
         player = self.plugin._player
         if getattr(self, "_main_view", None) is not None:
             self.refresh_main_media_controls()
+            self.refresh_local_shortcut_labels()
         if not player.has_media() and hasattr(self, 'listening_history'):
             self.listening_history.last_key = None
         if player.is_playing() and hasattr(self, 'listening_history'):
@@ -163,6 +201,24 @@ class DesktopFrame(wx.Frame):
         for button in (self._stop_button, getattr(getattr(self.plugin, '_dialog', None), '_stop_btn', None)):
             if button and button.GetLabel() != button_label:
                 button.SetLabel(button_label)
+
+    def refresh_local_shortcut_labels(self):
+        controls = ('previous','following','browser','continue_listening','sleep','downloads','listening',
+                    'settings','commands','messages','language','updates','backup','help','about','exit')
+        active = set(self.shortcuts.local_registered.values())
+        changed = False
+        for name, control in zip(self.shortcuts.local_actions, controls):
+            button = getattr(self._main_view, control)
+            label = button.GetLabel()
+            old = getattr(button,'_shortcut_suffix','')
+            if old and label.endswith(old): label = label[:-len(old)]
+            key = self.shortcuts.effective.get(name,'') if name in active else ''
+            suffix = ' (' + '+'.join({'control':'Ctrl','shift':'Shift','alt':'Alt',
+                         'leftarrow':'Left','rightarrow':'Right'}.get(x.lower(),x.upper()) for x in key.split('+')) + ')' if key else ''
+            button._shortcut_suffix = suffix
+            if button.GetLabel() != label + suffix:
+                button.SetLabel(label + suffix); changed = True
+        if changed: self._main_view.relayout()
 
     def refresh_main_media_controls(self):
         view = self._main_view
@@ -281,6 +337,7 @@ class DesktopFrame(wx.Frame):
             return
         token = self._playback_gate.cancel()
         self._stop_pending = token
+        self._last_stop_succeeded = None
         self._resume_after_stop = False
         timer = getattr(self.plugin, '_pause_resume_timer', None)
         if timer:
@@ -297,6 +354,7 @@ class DesktopFrame(wx.Frame):
                     self.refresh_playback_status()
                 return
             restart = self._resume_after_stop and not error
+            self._last_stop_succeeded = token if not error and not restart else None
             self._stop_pending = None
             self._resume_after_stop = False
             self.refresh_playback_status()
@@ -355,6 +413,126 @@ class DesktopFrame(wx.Frame):
             dialog.SetEscapeId(wx.ID_CLOSE)
             text.SetFocus()
             dialog.ShowModal()
+
+    def show_continue(self, event=None):
+        from desktop.listening_dialogs import ContinueDialog
+        if not self._continue_window:
+            self._continue_window = ContinueDialog(self)
+        else:
+            self._continue_window.refresh()
+        self._continue_window.Show(); self._continue_window.Raise()
+        wx.CallAfter(self._continue_window.list.SetFocus)
+
+    def show_sleep(self, event=None, focus_cancel=False):
+        from desktop.listening_dialogs import SleepDialog
+        if not self._sleep_window:
+            self._sleep_window = SleepDialog(self)
+        self._sleep_window.Show(); self._sleep_window.Raise()
+        wx.CallAfter((self._sleep_window.cancel if focus_cancel else self._sleep_window.mode).SetFocus)
+
+    def sleep_status(self):
+        timer = self.sleep_timer
+        if self._power_pending_since is not None:
+            return self.translate('Preparing computer shutdown. Cancel is still available.')
+        if timer.mode is None:
+            return self.translate('No sleep timer is active.')
+        action = self.translate('Shut down the computer' if timer.action == 'shutdown' else 'Stop playback')
+        if timer.mode == 'end':
+            return action + ' — ' + self.translate('At the end of this episode / chapter')
+        from desktop.continue_listening import time_label
+        return action + ' — ' + self.translate('Remaining: %s') % time_label(timer.remaining())
+
+    def cancel_sleep(self):
+        self.sleep_timer.cancel()
+        self._power_pending_since = None
+        self.notifications.message(self.translate('Sleep timer cancelled.'))
+        if self._sleep_window: self._sleep_window.refresh()
+
+    def scheduled_sleep_stop(self, expected_station, generation=None):
+        if (not self._closing and self._playback_gate.pending is None
+                and (generation is None or generation == self._playback_gate.current)
+                and self.plugin._player.get_current_station() == expected_station):
+            self.stop_playback()
+
+    def has_background_jobs(self):
+        recorder = self.plugin._recorder
+        return (recorder.is_recording() or bool(recorder.get_active_scheduled())
+                or any(x['state'] in self.downloads.ACTIVE for x in self.downloads.snapshot()))
+
+    def handle_media_finished(self, station):
+        if self._closing: return True
+        try:
+            if station.get('media_kind') == 'podcast':
+                self.downloads.mark_finished(station.get('podcast_resume_key') or station.get('url'))
+        except Exception:
+            logging.exception('Could not save listened episode status')
+        from desktop.sleep_timer import media_identity
+        current = media_identity(self.plugin._player.get_current_station())
+        if self._playback_gate.pending is not None or (current is not None and current != media_identity(station)):
+            self.sleep_timer.changed_media(current)
+            return True  # A late finish callback must not stop or advance new media.
+        action = self.sleep_timer.finished(media_identity(station))
+        if action:
+            self.stop_playback()
+            return True
+        return False
+
+    def sleep_tick(self):
+        import time
+        if self._closing or self._power_launching: return
+        from desktop.sleep_timer import media_identity
+        timer = self.sleep_timer
+        station = self.plugin._player.get_current_station()
+        if timer.changed_media(media_identity(station)):
+            self.notifications.message(self.translate('End-of-episode sleep timer cancelled because the media changed.'))
+        if ((timer.action == 'shutdown' or self._power_pending_since is not None) and self.has_background_jobs()):
+            self.cancel_sleep()
+            self.notifications.message(self.translate('Computer shutdown cancelled: a recording or download is active.'))
+            return
+        action = timer.poll()
+        if action == 'warning':
+            self.notifications.message(self.translate('The computer will shut down within 60 seconds. Use Cancel timer to stop it.'))
+            self.show_sleep(focus_cancel=True)
+        elif action == 'stop':
+            self.stop_playback()
+        elif action == 'shutdown':
+            self._power_pending_since = time.monotonic()
+            self.stop_playback()
+            self._power_stop_token = self._playback_gate.current
+        if self._power_pending_since is not None:
+            if (self._playback_gate.current != self._power_stop_token or self._resume_after_stop
+                    or (self._stop_pending is None and (self._last_stop_succeeded != self._power_stop_token
+                                                       or self.plugin._player.has_media()))):
+                self.cancel_sleep()
+                self.notifications.message(self.translate('Computer shutdown cancelled because playback changed or could not be stopped.'))
+            elif time.monotonic() - self._power_pending_since > 30:
+                self._power_pending_since = None
+                self.notifications.message(self.translate('Computer shutdown cancelled because playback did not stop in time.'))
+            elif self._stop_pending is None:
+                if not self.persist_settings():
+                    self._power_pending_since = None
+                    return
+                self._power_launching = True
+                self._power_pending_since = None
+                test_mode = getattr(self, '_no_power_actions', False)
+                def work():
+                    error = None
+                    try:
+                        from desktop.sleep_timer import request_windows_shutdown
+                        request_windows_shutdown(test_mode=test_mode)
+                    except Exception as exc: error = str(exc)
+                    wx.CallAfter(self.shutdown_result,error)
+                threading.Thread(target=work,daemon=True,name='desktop-power-request').start()
+        if getattr(self, '_main_view', None):
+            label = self.translate('Sleep timer (active)' if timer.mode or self._power_pending_since else '&Sleep timer')
+            label += getattr(self._main_view.sleep,'_shortcut_suffix','')
+            if self._main_view.sleep.GetLabel() != label: self._main_view.sleep.SetLabel(label)
+
+    def shutdown_result(self, error):
+        if not self or self._closing: return
+        self._power_launching = False
+        if error:
+            self.notifications.message(self.translate('Computer shutdown could not be started: %s') % error)
 
     def show_downloads(self, event=None):
         from desktop.media_dialogs import DownloadsDialog
@@ -673,6 +851,8 @@ class DesktopFrame(wx.Frame):
                     wx.CallLater(100, self.Close)
                     return
         self._closing = True
+        if hasattr(self, "sleep_timer"): self.sleep_timer.cancel()
+        self._power_pending_since = None
         if manager is not None and not manager.closed:
             manager.close()
         if getattr(self, '_startup_update_timer', None) is not None:
@@ -750,6 +930,7 @@ def main():
         if not settings['desktop'].get('update_repository'):
             settings['freeAudio']['auto_check_updates'] = False
         frame = DesktopFrame(None, title='freeAudio Desktop')
+        frame._no_power_actions = args.smoke_test
         translate, notifications = install(ROOT, settings, frame, language)
         sys.path.insert(0, str(ROOT / 'vendor'))
         import freeAudio
@@ -772,9 +953,17 @@ def main():
         desktop_stop.__dict__.update(original_stop.__dict__)
         desktop_stop.__doc__ = original_stop.__doc__
         freeAudio.GlobalPlugin.script_stop = desktop_stop
+        original_finished = freeAudio.GlobalPlugin._on_podcast_finished_ui
+        def desktop_finished(self, station):
+            if hasattr(frame, 'sleep_timer') and frame.handle_media_finished(station):
+                return
+            original_finished(self, station)
+        freeAudio.GlobalPlugin._on_podcast_finished_ui = desktop_finished
         plugin = freeAudio.GlobalPlugin()
         globalPluginHandler.runningPlugins.append(plugin)
         frame.build(plugin, settings, translate, notifications)
+        plugin._timer_manager._desktop_stop = frame.scheduled_sleep_stop
+        plugin._timer_manager._desktop_generation = lambda: frame._playback_gate.current
         if backup_warning:
             wx.CallAfter(notifications.message, translate('The automatic backup could not be created. Your existing profile was not changed.'))
         app.SetTopWindow(frame)

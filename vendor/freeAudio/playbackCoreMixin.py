@@ -715,6 +715,7 @@ class PlaybackCoreMixin:
 		"""Same station dict RadioDialog._on_episode_play() builds."""
 		station_dict = episode.to_dict()
 		station_dict["podcast_feed_url"] = feed.url
+		station_dict["podcast_feed_title"] = feed.title
 		if feed.author:
 			station_dict["podcast_author"] = feed.author
 		if feed.audio_profile:

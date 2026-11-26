@@ -52,7 +52,7 @@ class RecordingMixin:
 		out_path, filename = podcast.episode_download_target(title, url)
 		manager = getattr(self, "_desktop_downloads", None)
 		if manager is not None:
-			item = manager.enqueue(title, url, out_path)
+			item = manager.enqueue(title, url, out_path, station.get("podcast_feed_title", ""), station.get("podcast_feed_url", ""))
 			ui.message(_("Download complete: %s") % str(manager.resolve_path(item)) if item["state"] == "completed" else _("Downloading: %s") % title)
 			return
 		if os.path.exists(out_path):

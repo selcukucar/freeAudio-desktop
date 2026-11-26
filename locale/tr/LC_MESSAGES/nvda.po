@@ -7097,6 +7097,216 @@ msgstr "Güncelleme işlemi"
 msgid "Recording shortcut unavailable: %s"
 msgstr "Kayıt kısayolu kullanılamıyor: %s"
 
+msgid "&Continue listening"
+msgstr "&Dinlemeye devam et"
+
+msgid "Continue listening"
+msgstr "Dinlemeye devam et"
+
+msgid "&Sleep timer"
+msgstr "&Uyku zamanlayıcısı"
+
+msgid "Sleep timer (active)"
+msgstr "Uyku zamanlayıcısı (etkin)"
+
+msgid "Unfinished podcasts and audio books"
+msgstr "Yarım kalan podcastler ve sesli kitaplar"
+
+msgid "Saved listening position"
+msgstr "Kaydedilen dinleme konumu"
+
+msgid "&Continue selected media"
+msgstr "Seçili medyaya &devam et"
+
+msgid "&Refresh positions"
+msgstr "Konumları &yenile"
+
+msgid "No unfinished media yet. Listen to a podcast or audio book first."
+msgstr ""
+"Henüz yarım kalan medya yok. Önce bir podcast veya sesli kitap dinleyin."
+
+msgid "Saved position: %s"
+msgstr "Kaydedilen konum: %s"
+
+msgid "This media is unavailable. Check the file or library."
+msgstr "Bu medya kullanılamıyor. Dosyayı veya kütüphaneyi kontrol edin."
+
+msgid "When"
+msgstr "Ne zaman"
+
+msgid "After a duration"
+msgstr "Belirli bir süre sonra"
+
+msgid "At the end of this episode / chapter"
+msgstr "Bu bölümün sonunda"
+
+msgid "Minutes (1–480)"
+msgstr "Dakika (1–480)"
+
+msgid "%d minutes"
+msgstr "%d dakika"
+
+msgid "Action"
+msgstr "İşlem"
+
+msgid "Stop playback"
+msgstr "Oynatmayı durdur"
+
+msgid "Shut down the computer"
+msgstr "Bilgisayarı kapat"
+
+msgid ""
+"Recordings and downloads continue when playback stops. Computer shutdown has"
+" a 60-second cancellation warning and is blocked by active recordings or "
+"downloads. Other applications are never force-closed."
+msgstr ""
+"Oynatma durduğunda kayıtlar ve indirmeler devam eder. Bilgisayarı kapatmadan"
+" önce iptal için 60 saniye tanınır. Aktif kayıt veya indirme varsa kapatma "
+"iptal edilir. Diğer uygulamalar zorla kapatılmaz."
+
+msgid "Timer status"
+msgstr "Zamanlayıcı durumu"
+
+msgid "&Set timer"
+msgstr "Zamanlayıcıyı &başlat"
+
+msgid "&Cancel timer"
+msgstr "Zamanlayıcıyı &iptal et"
+
+msgid "Choose between 1 and 480 minutes."
+msgstr "1 ile 480 arasında dakika seçin."
+
+msgid "Play a podcast episode or audio book chapter first."
+msgstr "Önce bir podcast veya sesli kitap bölümü oynatın."
+
+msgid "Computer shutdown is blocked by active recordings or downloads."
+msgstr "Aktif kayıt veya indirme varken bilgisayar kapatılamaz."
+
+msgid "Sleep timer set."
+msgstr "Uyku zamanlayıcısı ayarlandı."
+
+msgid "No sleep timer is active."
+msgstr "Etkin uyku zamanlayıcısı yok."
+
+msgid "Remaining: %s"
+msgstr "Kalan süre: %s"
+
+msgid "Preparing computer shutdown. Cancel is still available."
+msgstr "Bilgisayar kapatılmaya hazırlanıyor. Hâlâ iptal edebilirsiniz."
+
+msgid "Sleep timer cancelled."
+msgstr "Uyku zamanlayıcısı iptal edildi."
+
+msgid "End-of-episode sleep timer cancelled because the media changed."
+msgstr "Medya değiştiği için bölüm sonu uyku zamanlayıcısı iptal edildi."
+
+msgid "Computer shutdown cancelled: a recording or download is active."
+msgstr "Bilgisayarı kapatma iptal edildi: aktif kayıt veya indirme var."
+
+msgid ""
+"The computer will shut down within 60 seconds. Use Cancel timer to stop it."
+msgstr ""
+"Bilgisayar 60 saniye sonra kapatılacak. Vazgeçmek için Zamanlayıcıyı iptal "
+"et düğmesini kullanın."
+
+msgid "Sleep timer: playback stopped."
+msgstr "Uyku zamanlayıcısı: oynatma durduruldu."
+
+msgid "Computer shutdown cancelled because playback did not stop in time."
+msgstr "Oynatma zamanında durmadığı için bilgisayarı kapatma iptal edildi."
+
+msgid ""
+"Computer shutdown cancelled because playback changed or could not be "
+"stopped."
+msgstr ""
+"Oynatma değiştiği veya durdurulamadığı için bilgisayarı kapatma iptal "
+"edildi."
+
+msgid "Computer shutdown could not be started: %s"
+msgstr "Bilgisayarı kapatma başlatılamadı: %s"
+
+msgid "Unlistened episodes"
+msgstr "Dinlenmemiş bölümler"
+
+msgid "Listened episodes"
+msgstr "Dinlenmiş bölümler"
+
+msgid "Listened"
+msgstr "Dinlendi"
+
+msgid "Podcast group"
+msgstr "Podcast grubu"
+
+msgid "All podcasts"
+msgstr "Tüm podcastler"
+
+msgid "Unknown podcast"
+msgstr "Podcast adı bilinmiyor"
+
+msgid "Downloaded files: %d; disk usage: %s MB"
+msgstr "İndirilen dosya: %d; disk kullanımı: %s MB"
+
+msgid "Mark as &listened"
+msgstr "&Dinlendi olarak işaretle"
+
+msgid "Mark as &unlistened"
+msgstr "&Dinlenmedi olarak işaretle"
+
+msgid "Edit &podcast name"
+msgstr "&Podcast adını düzenle"
+
+msgid "Podcast name for this episode:"
+msgstr "Bu bölümün podcast adı:"
+
+msgid "A library list needed recovery. The original data was kept at: %s"
+msgstr "Bir kütüphane listesi onarıldı. Önceki veriler şurada korundu: %s"
+
+msgid "A library list could not be changed safely. Existing data was kept: %s"
+msgstr ""
+"Bir kütüphane listesi güvenle değiştirilemedi. Mevcut veriler korundu: %s"
+
+msgid "The library is read-only. Restore a compatible profile backup."
+msgstr ""
+"Kütüphane salt okunur durumda. Uyumlu bir profil yedeği geri yükleyin."
+
+msgid "Application window shortcuts"
+msgstr "Uygulama penceresi kısayolları"
+
+msgid ""
+"Shortcut (empty disables; application window shortcuts work while the main "
+"window is active):"
+msgstr ""
+"Kısayol (boş bırakırsanız kapanır; pencere kısayolları ana pencere etkinken "
+"çalışır):"
+
+msgid "&Retry unavailable shortcuts"
+msgstr "Kullanılamayan kısayolları yeniden &dene"
+
+msgid "Shortcut registration retried."
+msgstr "Kısayollar yeniden kaydedilmeye çalışıldı."
+
+msgid "The shortcut is already registered by another application."
+msgstr "Kısayol başka bir uygulama tarafından kullanılıyor."
+
+msgid "Windows denied permission to register this shortcut."
+msgstr "Windows bu kısayolun kaydedilmesine izin vermedi."
+
+msgid "Windows could not register this shortcut."
+msgstr "Windows bu kısayolu kaydedemedi."
+
+msgid "Windows-key combinations cannot be application shortcuts."
+msgstr ""
+"Windows tuşunu içeren bileşimler pencere kısayolu olarak kullanılamaz."
+
+msgid "Open library"
+msgstr "Kütüphaneyi aç"
+
+msgid "Language / Dil"
+msgstr "Dil / Language"
+
+msgid "Exit"
+msgstr "Çıkış"
+
 #~ msgid ""
 #~ "\n"
 #~ "## Changelog for 2026.25.2\n"

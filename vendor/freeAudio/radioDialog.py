@@ -6662,6 +6662,7 @@ class RadioDialog(wx.Dialog):
 			# _rebuild_getem_resume_url() does for audio books (see
 			# GlobalPlugin._resume_last_station()).
 			station_dict["podcast_feed_url"] = feed.url
+			station_dict["podcast_feed_title"] = feed.title
 			if feed.author:
 				station_dict["podcast_author"] = feed.author
 			if feed.audio_profile:
@@ -6776,7 +6777,15 @@ class RadioDialog(wx.Dialog):
 		if manager is not None:
 			try:
 				path, filename = podcast.episode_download_target(episode.title, episode.url)
-				item = manager.enqueue(episode.title, episode.url, path)
+				feed = None
+				preview = getattr(self, "_podcast_preview_feed", None)
+				selected = self._get_selected_podcast_feed()
+				for candidate in (preview, selected):
+					if candidate and any(ep.url == episode.url for ep in candidate.episodes):
+						feed = candidate
+						break
+				item = manager.enqueue(episode.title, episode.url, path,
+				                       feed.title if feed else "", feed.url if feed else "")
 				ui.message(_("Download complete: %s") % str(manager.resolve_path(item)) if item["state"] == "completed" else _("Downloading: %s") % episode.title)
 			except Exception as error:
 				ui.message(_("Download failed: %s") % str(error))
@@ -6988,6 +6997,7 @@ class RadioDialog(wx.Dialog):
 			# feed, so the station-details dialog shows a "Podcast" link
 			# and author here too, not just once the user has subscribed.
 			station_dict["podcast_feed_url"] = feed.url
+			station_dict["podcast_feed_title"] = feed.title
 			if feed.author:
 				station_dict["podcast_author"] = feed.author
 		self._play_callback(station_dict, [station_dict], 0, announce=True)

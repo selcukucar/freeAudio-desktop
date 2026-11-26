@@ -95,5 +95,18 @@ class PodcastMenuTests(unittest.TestCase):
         self.controller._on_podcast_preview_download(None)
         self.assertEqual(self.jobs,[])
 
+    def test_desktop_queue_keeps_correct_feed_for_preview_and_subscribed_downloads(self):
+        manager=Mock();manager.enqueue.return_value={'state':'queued'}
+        c=self.controller;c._plugin=types.SimpleNamespace(_desktop_downloads=manager)
+        preview=types.SimpleNamespace(url='https://example.org/preview',title='Preview',episodes=[self.ep])
+        selected=types.SimpleNamespace(url='https://example.org/other',title='Other',episodes=[])
+        c._podcast_preview_feed=preview;c._get_selected_podcast_feed=lambda:selected
+        c._on_podcast_preview_download(None)
+        manager.enqueue.assert_called_once_with(self.ep.title,self.ep.url,'C:/audio/episode.mp3',preview.title,preview.url)
+        manager.enqueue.reset_mock()
+        preview.episodes=[];selected.episodes=[self.ep]
+        c._download_podcast_episode(self.ep)
+        manager.enqueue.assert_called_once_with(self.ep.title,self.ep.url,'C:/audio/episode.mp3',selected.title,selected.url)
+
 if __name__=='__main__':
     unittest.main()
